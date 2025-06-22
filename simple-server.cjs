@@ -8,7 +8,18 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3003;
 
-app.use(cors());
+// Configure CORS to allow Vercel frontend
+app.use(cors({
+  origin: [
+    'https://englishcheckpointapp.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
 const openai = new OpenAI({
