@@ -353,10 +353,10 @@ app.post('/webhook/stripe', express.raw({type: 'application/json'}), async (req,
   res.json({received: true});
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚛 Simple English Checkpoint Server running on port ${PORT}`);
-  console.log(`📡 API available at http://localhost:${PORT}/api`);
-  console.log(`🔧 MCP Tools available at http://localhost:${PORT}/api/mcp`);
-  console.log(`💳 Stripe webhook endpoint: http://localhost:${PORT}/webhook/stripe`);
+  console.log(`📡 API available at http://0.0.0.0:${PORT}/api`);
+  console.log(`🔧 MCP Tools available at http://0.0.0.0:${PORT}/api/mcp`);
+  console.log(`💳 Stripe webhook endpoint: http://0.0.0.0:${PORT}/webhook/stripe`);
   console.log(`🌍 Multi-language support: English, Somali, Arabic, Spanish, French, German`);
 });
