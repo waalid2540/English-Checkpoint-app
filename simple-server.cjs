@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = 3003;
+const PORT = process.env.PORT || 3003;
 
 app.use(cors());
 app.use(express.json());
@@ -353,10 +353,24 @@ app.post('/webhook/stripe', express.raw({type: 'application/json'}), async (req,
   res.json({received: true});
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚛 Simple English Checkpoint Server running on port ${PORT}`);
-  console.log(`📡 API available at http://0.0.0.0:${PORT}/api`);
-  console.log(`🔧 MCP Tools available at http://0.0.0.0:${PORT}/api/mcp`);
-  console.log(`💳 Stripe webhook endpoint: http://0.0.0.0:${PORT}/webhook/stripe`);
-  console.log(`🌍 Multi-language support: English, Somali, Arabic, Spanish, French, German`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚛 English Checkpoint Server READY on port ${PORT}`);
+  console.log(`📡 Health check: http://0.0.0.0:${PORT}/api/health`);
+  console.log(`🔧 MCP Tools: http://0.0.0.0:${PORT}/api/mcp`);
+  console.log(`💳 Stripe webhook: http://0.0.0.0:${PORT}/webhook/stripe`);
+  console.log(`🌍 Multi-language support enabled`);
+  console.log(`✅ SERVER IS LISTENING ON PORT ${PORT}`);
+});
+
+server.on('error', (error) => {
+  console.error('❌ Server error:', error);
+});
+
+// Keep the process alive
+process.on('SIGTERM', () => {
+  console.log('🛑 Received SIGTERM, shutting down gracefully');
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
 });
