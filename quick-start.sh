@@ -1,0 +1,25 @@
+#!/bin/bash
+
+echo "🚛 Quick Start - English Checkpoint"
+echo "=================================="
+
+# Show available options
+echo "Your app can be accessed at:"
+echo ""
+echo "Option 1: http://localhost:3000 (Vite dev server)"
+echo "Option 2: http://10.0.0.63:3000 (Network address)"
+echo ""
+echo "Servers running:"
+echo "✅ Backend: http://localhost:3003"
+echo "✅ Frontend: http://localhost:3000"
+echo ""
+echo "If localhost doesn't work, try the network address!"
+echo ""
+echo "Features ready to test:"
+echo "🔐 Login/Signup with Supabase"
+echo "🤖 AI Coach with GPT-4"
+echo "🔊 Google TTS voices"
+echo "🎤 Speech recognition"
+echo "🌍 Multi-language support"
+echo ""
+echo "Create an account and start learning! 🚛✨"

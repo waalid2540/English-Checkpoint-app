@@ -1,0 +1,63 @@
+{
+  "mcpServers": {
+    "english-checkpoint-truck-driver": {
+      "command": "node",
+      "args": ["mcp-server.js"],
+      "cwd": "/Users/yussufabdi/english-checkpoint-truck-driver",
+      "description": "MCP server for English Checkpoint truck driver learning app",
+      "capabilities": [
+        "DOT regulations lookup",
+        "Learning progress tracking", 
+        "Trucking vocabulary database",
+        "Checkpoint scenario generation",
+        "Pronunciation analysis"
+      ]
+    }
+  },
+  "tools": [
+    {
+      "name": "get_dot_regulations",
+      "description": "Get current DOT regulations for truck drivers",
+      "parameters": {
+        "category": "Type of regulation (hours-of-service, vehicle-inspection, licensing, safety)",
+        "state": "Optional state code for state-specific rules"
+      }
+    },
+    {
+      "name": "track_learning_progress", 
+      "description": "Track user learning progress and generate recommendations",
+      "parameters": {
+        "user_id": "User identifier",
+        "lesson_type": "Type of lesson (conversation, vocabulary, pronunciation, comprehension)",
+        "score": "Score percentage (0-100)",
+        "duration": "Lesson duration in minutes"
+      }
+    },
+    {
+      "name": "get_trucking_vocabulary",
+      "description": "Get specialized trucking vocabulary by category",
+      "parameters": {
+        "category": "Vocabulary category (mechanical, safety, navigation, communication, legal)",
+        "difficulty": "Difficulty level (beginner, intermediate, advanced)",
+        "count": "Number of vocabulary items (1-50)"
+      }
+    },
+    {
+      "name": "get_checkpoint_scenarios",
+      "description": "Generate realistic DOT checkpoint conversation scenarios",
+      "parameters": {
+        "scenario_type": "Type of scenario (routine-inspection, violation, emergency, border-crossing)",
+        "difficulty": "Difficulty level (beginner, intermediate, advanced)"
+      }
+    },
+    {
+      "name": "analyze_pronunciation",
+      "description": "Analyze pronunciation quality and provide feedback",
+      "parameters": {
+        "audio_text": "Transcribed text from speech recognition",
+        "target_text": "Target text that should have been spoken", 
+        "language": "Source language of the speaker"
+      }
+    }
+  ]
+}

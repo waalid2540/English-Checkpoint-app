@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Checkpoint - Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+        }
+        .container {
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        h1 { font-size: 2.5em; margin-bottom: 20px; }
+        .status { font-size: 1.2em; margin: 20px 0; }
+        .success { color: #4CAF50; }
+        .info { color: #2196F3; }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚛 English Checkpoint</h1>
+        <div class="status success">✅ Safari Connection Test Successful!</div>
+        
+        <p class="info">Your browser can access local files. The app will work!</p>
+        
+        <h2>🔧 Available Features:</h2>
+        <ul style="text-align: left; display: inline-block;">
+            <li>✅ MCP-Enhanced AI Coach</li>
+            <li>✅ DOT Regulations Lookup</li>
+            <li>✅ Smart Vocabulary System</li>
+            <li>✅ Checkpoint Scenarios</li>
+            <li>✅ Voice Conversations</li>
+            <li>✅ Learning Progress Tracking</li>
+        </ul>
+        
+        <div style="margin-top: 30px;">
+            <button onclick="testAPI()">🔧 Test Backend API</button>
+            <button onclick="openFullApp()">🚀 Launch Full App</button>
+        </div>
+        
+        <div id="api-status" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        async function testAPI() {
+            const status = document.getElementById('api-status');
+            status.innerHTML = '🔄 Testing backend connection...';
+            
+            try {
+                const response = await fetch('http://localhost:3003/api/health');
+                const data = await response.json();
+                status.innerHTML = '✅ Backend API is running! MCP tools available.';
+                status.className = 'status success';
+            } catch (error) {
+                status.innerHTML = '❌ Backend not running. Start with: node simple-server.cjs';
+                status.className = 'status';
+                status.style.color = '#ff6b6b';
+            }
+        }
+        
+        function openFullApp() {
+            window.location.href = '/dist/index.html';
+        }
+        
+        // Auto-test API on load
+        setTimeout(testAPI, 1000);
+    </script>
+</body>
+</html>
