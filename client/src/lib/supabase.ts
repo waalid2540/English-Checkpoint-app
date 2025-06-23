@@ -5,7 +5,9 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIU
 
 // Debug environment variables
 console.log('🔧 Supabase URL:', supabaseUrl)
+console.log('🔧 Supabase Raw Env:', import.meta.env.VITE_SUPABASE_URL)
 console.log('🔧 API Base URL:', import.meta.env.VITE_API_BASE_URL)
+console.log('🔧 All Environment Variables:', import.meta.env)
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
