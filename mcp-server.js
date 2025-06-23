@@ -19,8 +19,8 @@ class TruckDriverMCPServer {
   constructor() {
     // Initialize Supabase client
     this.supabase = createClient(
-      process.env.SUPABASE_URL || 'https://vtrgpzdpedhulttksozi.supabase.co',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0cmdoemRwZWRodWx0dGtzem9pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0ODk2ODc0NiwiZXhwIjoyMDY0NTQ0NzQ2fQ.CjYCC3nAscFY0gNAfCW1ayZSDmCH69qfBpu16MZN1ak'
+      process.env.SUPABASE_URL || 'https://paiujwhqdfgundysncay.supabase.co',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhaXVqd2hxZGZndW5keXNuY2F5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDU0NzA2MywiZXhwIjoyMDY2MTIzMDYzfQ.coy-7J8I01tlwxkniQYeAvPwxlxLHdikJ6OXOatCr6A'
     );
 
     // Initialize Stripe client
