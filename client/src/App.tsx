@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import Home from './pages/Home'
 import QATraining from './pages/QATraining'
 import AICoach from './pages/AICoach'
+import MCPEnhancedAICoach from './pages/MCPEnhancedAICoach'
 import Settings from './pages/Settings'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
@@ -51,6 +52,12 @@ function App() {
           <Route path="/ai-coach" element={
             <ProtectedRoute>
               <AICoach />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/mcp-coach" element={
+            <ProtectedRoute>
+              <MCPEnhancedAICoach />
             </ProtectedRoute>
           } />
           
