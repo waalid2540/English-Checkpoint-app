@@ -6,5 +6,12 @@ export default defineConfig({
   build: {
     outDir: './dist',
     emptyOutDir: true,
+  },
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    hmr: {
+      port: 5173
+    }
   }
 })
