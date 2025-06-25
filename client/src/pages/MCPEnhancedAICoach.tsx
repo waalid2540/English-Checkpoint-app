@@ -329,6 +329,38 @@ const MCPEnhancedAICoach = () => {
               </div>
             </div>
             
+            {/* Trial Signup Button */}
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => {
+                  // Create Stripe checkout session
+                  fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
+                      successUrl: `${window.location.origin}/mcp-coach?success=true`,
+                      cancelUrl: `${window.location.origin}/mcp-coach?canceled=true`
+                    })
+                  })
+                  .then(res => res.json())
+                  .then(data => {
+                    if (data.url) {
+                      window.location.href = data.url
+                    }
+                  })
+                  .catch(err => console.error('Stripe error:', err))
+                }}
+                className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
+              >
+                🚀 Start 7-Day Free Trial
+              </button>
+              <div className="text-right">
+                <div className="text-sm font-medium text-gray-800">Premium Features</div>
+                <div className="text-xs text-gray-600">$9.99/month after trial</div>
+              </div>
+            </div>
+            
             {/* Voice Controls */}
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
