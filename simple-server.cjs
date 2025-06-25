@@ -9,18 +9,28 @@ const app = express();
 const PORT = process.env.PORT || 3003;
 
 // Configure CORS to allow Vercel frontend
+const corsOrigin = process.env.CORS_ORIGIN || [
+  'https://englishcheckpointapp.vercel.app',
+  'https://englishcheckpoint-q5wgi9b0w-waalid2540s-projects.vercel.app',
+  'https://englishcheckpoint-32nbhlv1s-waalid2540s-projects.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:5173'
+];
+
 app.use(cors({
-  origin: [
-    'https://englishcheckpointapp.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:5173'
-  ],
+  origin: corsOrigin === '*' ? true : corsOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
+
+// Debug environment variables
+console.log('🔧 Environment Check:');
+console.log('- OpenAI API Key:', process.env.OPENAI_API_KEY ? 'SET ✅' : 'MISSING ❌');
+console.log('- Stripe Secret:', process.env.STRIPE_SECRET_KEY ? 'SET ✅' : 'MISSING ❌');
+console.log('- Supabase URL:', process.env.SUPABASE_URL ? 'SET ✅' : 'MISSING ❌');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -89,7 +99,11 @@ app.post('/api/ai/chat', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ OpenAI error:', error.message);
+    console.error('❌ OpenAI error details:');
+    console.error('- Error message:', error.message);
+    console.error('- Error code:', error.code);
+    console.error('- Error type:', error.type);
+    console.error('- Full error:', error);
     
     const fallbackResponses = [
       "That's wonderful! You're making great progress. Keep practicing!",

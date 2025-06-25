@@ -3,6 +3,8 @@ import axios from 'axios'
 import { useMCP } from '../lib/mcp-client'
 import { useAuth } from '../contexts/AuthContext'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
+
 interface Message {
   id: string
   text: string
@@ -239,7 +241,7 @@ const MCPEnhancedAICoach = () => {
   // Regular AI response for non-MCP conversations
   const getRegularAIResponse = async (userMessage: string): Promise<string> => {
     try {
-      const response = await axios.post('http://localhost:3003/api/ai/chat', {
+      const response = await axios.post(`${API_BASE_URL}/api/ai/chat`, {
         message: userMessage,
         mode: 'enhanced',
         systemPrompt: `You are an enhanced AI Coach for truck drivers with MCP capabilities. 
@@ -269,7 +271,7 @@ const MCPEnhancedAICoach = () => {
     setIsSpeaking(true)
     
     try {
-      const response = await axios.post('http://localhost:3003/api/ai/text-to-speech', {
+      const response = await axios.post(`${API_BASE_URL}/api/ai/text-to-speech`, {
         text: text,
         language: selectedVoice
       }, {

@@ -7,7 +7,7 @@
     "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
     "server:dev": "tsx watch server/index.ts",
     "client:dev": "vite",
-    "build": "vite build",
+    "build": "cd client && npm install && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

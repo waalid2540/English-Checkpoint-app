@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
+
 interface Message {
   id: string
   text: string
@@ -212,7 +214,7 @@ const AICoach = () => {
     setIsSpeaking(true)
     
     try {
-      const response = await axios.post('http://localhost:3003/api/ai/text-to-speech', {
+      const response = await axios.post(`${API_BASE_URL}/api/ai/text-to-speech`, {
         text: text,
         language: selectedVoice
       }, {
@@ -298,7 +300,7 @@ INSTRUCTIONS:
 
 Remember: You're building their confidence for checkpoints, emergencies, health, repairs, and life in America.`
 
-      const response = await axios.post('http://localhost:3003/api/ai/chat', {
+      const response = await axios.post(`${API_BASE_URL}/api/ai/chat`, {
         message: userMessage,
         mode: mode,
         systemPrompt: systemPrompt,
