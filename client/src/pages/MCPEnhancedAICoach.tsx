@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import { useMCP } from '../lib/mcp-client'
 import { useAuth } from '../contexts/AuthContext'
+import { useSubscription } from '../hooks/useSubscription'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
 
@@ -15,6 +16,7 @@ interface Message {
 }
 
 const MCPEnhancedAICoach = () => {
+  const subscription = useSubscription()
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -301,6 +303,79 @@ const MCPEnhancedAICoach = () => {
       console.error('❌ gTTS error:', error)
       setIsSpeaking(false)
     }
+  }
+
+  // Premium Gate - Block free users from MCP
+  if (!subscription.isPremium && !subscription.loading) {
+    return (
+      <div className="h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl p-8 max-w-lg mx-4 text-center shadow-2xl">
+          <div className="w-24 h-24 bg-gradient-to-br from-purple-600 to-blue-700 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span className="text-white text-3xl">🤖</span>
+          </div>
+          
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-800 to-blue-600 bg-clip-text text-transparent mb-4">
+            MCP Enhanced AI Coach
+          </h1>
+          <div className="bg-gradient-to-r from-green-400 to-blue-500 text-white text-sm font-bold px-3 py-1 rounded-full inline-block mb-6">
+            PREMIUM FEATURE
+          </div>
+          
+          <p className="text-gray-600 mb-6">
+            Access advanced trucking tools, DOT regulations, vocabulary training, and enhanced AI capabilities.
+          </p>
+          
+          <div className="bg-purple-50 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-gray-800 mb-3">🔧 MCP Tools Include:</h3>
+            <ul className="text-sm text-gray-600 space-y-2 text-left">
+              <li>✅ DOT safety regulations lookup</li>
+              <li>✅ Advanced trucking vocabulary</li>
+              <li>✅ Checkpoint scenario practice</li>
+              <li>✅ Learning progress analytics</li>
+              <li>✅ Pronunciation analysis</li>
+              <li>✅ Real-time conversation tools</li>
+            </ul>
+          </div>
+          
+          <div className="flex space-x-3">
+            <button
+              onClick={() => {
+                // Create Stripe checkout session
+                fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
+                    successUrl: `${window.location.origin}/mcp-coach?success=true`,
+                    cancelUrl: `${window.location.origin}/mcp-coach?canceled=true`
+                  })
+                })
+                .then(res => res.json())
+                .then(data => {
+                  if (data.url) {
+                    window.location.href = data.url
+                  }
+                })
+                .catch(err => console.error('Stripe error:', err))
+              }}
+              className="flex-1 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
+            >
+              🚀 Start 7-Day Free Trial
+            </button>
+            <button
+              onClick={() => window.location.href = '/ai-coach'}
+              className="px-4 py-3 text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Try Basic Coach
+            </button>
+          </div>
+          
+          <p className="text-xs text-gray-500 mt-4">
+            $9.99/month after trial • Cancel anytime
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (

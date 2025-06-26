@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
+import { useSubscription } from '../hooks/useSubscription'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
 
@@ -21,6 +22,7 @@ interface CoachMode {
 }
 
 const AICoach = () => {
+  const subscription = useSubscription()
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -40,6 +42,9 @@ const AICoach = () => {
   const [voiceSpeed, setVoiceSpeed] = useState(0.8)
   
   const recognitionRef = useRef<any>(null)
+
+  // Check if user has reached daily limit
+  const hasReachedLimit = !subscription.isPremium && subscription.dailyUsage >= subscription.dailyLimit
 
   const modes: CoachMode[] = [
     {
@@ -126,6 +131,53 @@ const AICoach = () => {
     { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
     { code: 'zh', name: 'Chinese', flag: '🇨🇳' }
   ]
+
+  // Paywall Component for Free Users
+  const PaywallOverlay = () => {
+    if (!hasReachedLimit) return null
+    
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span className="text-white text-3xl">🚛</span>
+          </div>
+          
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Daily Limit Reached!</h2>
+          <p className="text-gray-600 mb-6">
+            You've used all {subscription.dailyLimit} free conversations today. 
+            Upgrade to Premium for unlimited access!
+          </p>
+          
+          <div className="bg-blue-50 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-gray-800 mb-3">Premium Benefits:</h3>
+            <ul className="text-sm text-gray-600 space-y-2 text-left">
+              <li>✅ Unlimited AI Coach conversations</li>
+              <li>✅ Advanced voice features</li>
+              <li>✅ MCP Enhanced tools</li>
+              <li>✅ Progress tracking</li>
+              <li>✅ DOT regulation access</li>
+            </ul>
+          </div>
+          
+          <div className="flex space-x-3">
+            <button
+              onClick={() => window.location.href = '/mcp-coach'}
+              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity"
+            >
+              🚀 Start 7-Day Free Trial
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-3 text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Maybe Later
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // Browser Speech Recognition - WORKS IMMEDIATELY
   const startVoiceConversation = () => {
@@ -640,6 +692,9 @@ ${mode.description}
           </div>
         </div>
       </div>
+      
+      {/* Paywall Overlay */}
+      <PaywallOverlay />
     </div>
   )
 }

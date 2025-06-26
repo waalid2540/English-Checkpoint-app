@@ -79,6 +79,27 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
   }
 });
 
+// Check user subscription status
+app.get('/api/subscription/status', async (req, res) => {
+  try {
+    // For now, return free user status (you'll connect this to your database)
+    const userId = req.headers.authorization?.replace('Bearer ', '') || 'anonymous';
+    
+    // TODO: Check actual subscription status from database
+    // For now, everyone is free user
+    res.json({
+      isPremium: false,
+      trialDaysLeft: 0,
+      dailyUsage: 0,
+      dailyLimit: 3,
+      subscriptionId: null
+    });
+  } catch (error) {
+    console.error('Subscription status error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // AI Chat endpoint with multilanguage support
 app.post('/api/ai/chat', async (req, res) => {
   try {
