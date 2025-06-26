@@ -19,6 +19,7 @@ interface CoachMode {
   description: string
   color: string
   gradient: string
+  isPremium?: boolean
 }
 
 const AICoach = () => {
@@ -101,7 +102,44 @@ const AICoach = () => {
       icon: '📊',
       description: 'Review your learning progress and weak areas',
       color: 'bg-indigo-500',
-      gradient: 'from-indigo-500 to-indigo-600'
+      gradient: 'from-indigo-500 to-indigo-600',
+      isPremium: true
+    },
+    {
+      id: 'dot-regulations',
+      name: 'DOT Regulations',
+      icon: '📋',
+      description: 'Learn federal trucking regulations and compliance',
+      color: 'bg-purple-500',
+      gradient: 'from-purple-500 to-purple-600',
+      isPremium: true
+    },
+    {
+      id: 'smart-vocabulary',
+      name: 'Smart Vocabulary',
+      icon: '🧠',
+      description: 'Advanced trucking and technical vocabulary training',
+      color: 'bg-cyan-500',
+      gradient: 'from-cyan-500 to-cyan-600',
+      isPremium: true
+    },
+    {
+      id: 'pronunciation',
+      name: 'Pronunciation Coach',
+      icon: '🎤',
+      description: 'Perfect your pronunciation with AI feedback',
+      color: 'bg-pink-500',
+      gradient: 'from-pink-500 to-pink-600',
+      isPremium: true
+    },
+    {
+      id: 'checkpoint-practice',
+      name: 'Checkpoint Practice',
+      icon: '🎭',
+      description: 'Realistic DOT checkpoint scenario simulations',
+      color: 'bg-orange-500',
+      gradient: 'from-orange-500 to-orange-600',
+      isPremium: true
     }
   ]
 
@@ -162,7 +200,25 @@ const AICoach = () => {
           
           <div className="flex space-x-3">
             <button
-              onClick={() => window.location.href = '/mcp-coach'}
+              onClick={() => {
+                // Create Stripe checkout session for trial
+                fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
+                    successUrl: `${window.location.origin}/ai-coach?success=true`,
+                    cancelUrl: `${window.location.origin}/ai-coach?canceled=true`
+                  })
+                })
+                .then(res => res.json())
+                .then(data => {
+                  if (data.url) {
+                    window.location.href = data.url
+                  }
+                })
+                .catch(err => console.error('Stripe error:', err))
+              }}
               className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity"
             >
               🚀 Start 7-Day Free Trial
@@ -520,13 +576,56 @@ ${mode.description}
               {modes.map((mode) => (
                 <button
                   key={mode.id}
-                  onClick={() => selectMode(mode)}
-                  className={`group relative p-4 rounded-xl border-2 border-transparent bg-gradient-to-br ${mode.gradient} hover:scale-105 transform transition-all duration-200 shadow-lg hover:shadow-xl`}
+                  onClick={() => {
+                    if (mode.isPremium && !subscription.isPremium) {
+                      // Show premium upgrade prompt
+                      const upgradePrompt = confirm(
+                        `${mode.name} is a Premium feature!\n\nUpgrade to Premium to access:\n• Unlimited conversations\n• ${mode.description}\n• All advanced features\n\nStart your 7-day free trial now?`
+                      )
+                      if (upgradePrompt) {
+                        // Start Stripe checkout for trial
+                        fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
+                            successUrl: `${window.location.origin}/ai-coach?success=true`,
+                            cancelUrl: `${window.location.origin}/ai-coach?canceled=true`
+                          })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                          if (data.url) {
+                            window.location.href = data.url
+                          }
+                        })
+                        .catch(err => console.error('Stripe error:', err))
+                      }
+                    } else {
+                      selectMode(mode)
+                    }
+                  }}
+                  className={`group relative p-4 rounded-xl border-2 border-transparent bg-gradient-to-br ${
+                    mode.isPremium && !subscription.isPremium 
+                      ? 'from-gray-400 to-gray-500 opacity-75' 
+                      : mode.gradient
+                  } hover:scale-105 transform transition-all duration-200 shadow-lg hover:shadow-xl`}
                 >
+                  {/* Premium Badge */}
+                  {mode.isPremium && (
+                    <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                      {subscription.isPremium ? '⭐' : '🔒'}
+                    </div>
+                  )}
+                  
                   <div className="text-center">
                     <div className="text-2xl mb-2">{mode.icon}</div>
                     <div className="text-white font-semibold text-sm">{mode.name}</div>
+                    {mode.isPremium && !subscription.isPremium && (
+                      <div className="text-xs text-white/80 mt-1">Premium</div>
+                    )}
                   </div>
+                  
                   <div className="absolute inset-0 bg-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                 </button>
               ))}
