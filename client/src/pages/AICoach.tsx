@@ -312,23 +312,62 @@ const AICoach = () => {
         console.log('✅ gTTS audio ready to play')
         // Mobile-friendly audio play with user interaction check
         const playAudio = () => {
-          audio.play().catch(e => {
-            console.error('❌ Play error:', e)
-            // Fallback: try to play with user interaction
-            const playButton = document.createElement('button')
-            playButton.textContent = '🔊 Tap to hear response'
-            playButton.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:#3b82f6;color:white;padding:12px 24px;border:none;border-radius:8px;font-size:16px;'
-            playButton.onclick = () => {
-              audio.play()
-              document.body.removeChild(playButton)
-            }
-            document.body.appendChild(playButton)
-            setTimeout(() => {
-              if (document.body.contains(playButton)) {
-                document.body.removeChild(playButton)
+          // For mobile Safari and other mobile browsers, we need user gesture
+          const playPromise = audio.play()
+          
+          if (playPromise !== undefined) {
+            playPromise.catch(e => {
+              console.error('❌ Play error:', e)
+              // Always show fallback button on mobile/autoplay restriction
+              const playButton = document.createElement('button')
+              playButton.textContent = '🔊 Tap to hear AI response'
+              playButton.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 10000;
+                background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+                color: white;
+                padding: 16px 24px;
+                border: none;
+                border-radius: 12px;
+                font-size: 18px;
+                font-weight: bold;
+                box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+                cursor: pointer;
+                animation: pulse 2s infinite;
+              `
+              
+              // Add CSS animation
+              const style = document.createElement('style')
+              style.textContent = `
+                @keyframes pulse {
+                  0% { transform: translate(-50%, -50%) scale(1); }
+                  50% { transform: translate(-50%, -50%) scale(1.05); }
+                  100% { transform: translate(-50%, -50%) scale(1); }
+                }
+              `
+              document.head.appendChild(style)
+              
+              playButton.onclick = () => {
+                audio.play().then(() => {
+                  document.body.removeChild(playButton)
+                  document.head.removeChild(style)
+                }).catch(console.error)
               }
-            }, 5000)
-          })
+              
+              document.body.appendChild(playButton)
+              
+              // Auto-remove after 8 seconds
+              setTimeout(() => {
+                if (document.body.contains(playButton)) {
+                  document.body.removeChild(playButton)
+                  document.head.removeChild(style)
+                }
+              }, 8000)
+            })
+          }
         }
         playAudio()
       }
@@ -387,18 +426,32 @@ const AICoach = () => {
 
       const systemPrompt = `You are Checkpoint English Coach, a warm, friendly, and patient AI assistant helping truck drivers master English. 
 
-PERSONALITY: Always be encouraging, supportive, and human-like. Never be robotic. Speak like a caring tutor.
+PERSONALITY: 
+- Be conversational and natural, like talking to a good friend
+- Show genuine interest in their trucking life and experiences
+- Use casual, encouraging language ("That's awesome!", "I hear you", "Tell me more about...")
+- Remember what they've told you and reference it in future responses
+- Be enthusiastic and supportive, but not overly excited
+- Ask personal questions about their trucking experiences
 
 CURRENT MODE: ${mode ? modeContext[mode as keyof typeof modeContext] : "General conversation"}
 
-INSTRUCTIONS:
-- Keep responses short and conversational (2-3 sentences max)
-- Ask follow-up questions to practice more
-- Correct mistakes gently and positively
-- Use truck driver context in examples
-- Always end with motivation
+CONVERSATION STYLE:
+- Keep responses 2-4 sentences, conversational length
+- Always ask follow-up questions to keep the conversation flowing
+- Show curiosity about their trucking stories, routes, experiences
+- Share relevant tips or encouragement naturally in the conversation
+- Build on what they just said - don't change topics abruptly
+- Use phrases like "That reminds me...", "Speaking of...", "I'm curious..."
+- Correct mistakes by naturally using the correct form in your response
 
-Remember: You're building their confidence for checkpoints, emergencies, health, repairs, and life in America.`
+CONTEXT AWARENESS:
+- Remember they're truck drivers with real experiences on the road
+- Ask about their routes, cargo, favorite truck stops, challenges
+- Show interest in their life, family, goals in America
+- Connect English learning to their actual daily situations
+
+Remember: You're not just teaching English - you're having a real conversation with someone whose experiences matter.`
 
       const response = await axios.post(`${API_BASE_URL}/api/ai/chat`, {
         message: userMessage,
