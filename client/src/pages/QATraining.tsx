@@ -1,20 +1,28 @@
 import React, { useState } from 'react'
 import { samplePrompts } from '../data/sample-prompts'
+import { useSubscription } from '../hooks/useSubscription'
 
 const QATraining = () => {
+  const subscription = useSubscription()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playingType, setPlayingType] = useState<'officer' | 'driver' | null>(null)
 
-  const currentPrompt = samplePrompts[currentIndex]
+  // Filter prompts based on subscription status
+  const availablePrompts = samplePrompts.filter((prompt, index) => {
+    if (index < 10) return true // First 10 are free
+    return subscription.isPremium // Rest require premium
+  })
+
+  const currentPrompt = availablePrompts[currentIndex] || samplePrompts[0]
 
   const playAll = () => {
     setIsPlaying(true)
     setCurrentIndex(0)
     
-    // Create conversation audio
+    // Create conversation audio using available prompts
     let script = ""
-    samplePrompts.forEach(prompt => {
+    availablePrompts.forEach(prompt => {
       script += `Officer: ${prompt.officer}... Driver: ${prompt.driver}... `
     })
     
@@ -27,7 +35,7 @@ const QATraining = () => {
     // Update text every 8 seconds (slower to match audio)
     let questionIndex = 0
     const updateText = () => {
-      if (questionIndex < samplePrompts.length) {
+      if (questionIndex < availablePrompts.length) {
         console.log(`Showing question ${questionIndex + 1}`)
         setCurrentIndex(questionIndex)
         setPlayingType('officer')
@@ -37,7 +45,7 @@ const QATraining = () => {
           setTimeout(() => {
             setPlayingType(null)
             questionIndex++
-            if (questionIndex < samplePrompts.length) {
+            if (questionIndex < availablePrompts.length) {
               setTimeout(updateText, 1500)
             }
           }, 4000)
@@ -74,12 +82,17 @@ const QATraining = () => {
       {/* Progress */}
       <div className="bg-white p-4 rounded-lg shadow mb-8">
         <div className="text-center text-xl font-bold mb-4">
-          Question {currentIndex + 1} of {samplePrompts.length}
+          Question {currentIndex + 1} of {availablePrompts.length}
+          {!subscription.isPremium && (
+            <span className="text-sm text-gray-600 block">
+              (🆓 Free: 1-10 | 🔒 Premium: 11-198)
+            </span>
+          )}
         </div>
         <div className="w-full bg-gray-300 rounded-full h-4">
           <div 
             className="bg-blue-500 h-4 rounded-full transition-all duration-500"
-            style={{ width: `${((currentIndex + 1) / samplePrompts.length) * 100}%` }}
+            style={{ width: `${((currentIndex + 1) / availablePrompts.length) * 100}%` }}
           ></div>
         </div>
       </div>
@@ -132,6 +145,55 @@ const QATraining = () => {
           </p>
         </div>
       </div>
+
+      {/* Navigation Controls */}
+      <div className="flex justify-between items-center mt-8">
+        <button
+          onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
+          disabled={currentIndex === 0}
+          className="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-300 text-white px-6 py-3 rounded-lg font-medium"
+        >
+          ← Previous
+        </button>
+
+        <div className="text-center">
+          <span className="text-lg font-medium text-gray-700">
+            {currentIndex + 1} / {availablePrompts.length}
+          </span>
+        </div>
+
+        <button
+          onClick={() => {
+            if (currentIndex + 1 >= availablePrompts.length && !subscription.isPremium) {
+              // Show upgrade prompt
+              const upgrade = confirm(`🔒 Unlock ${samplePrompts.length - 10} more questions!\n\nUpgrade to Premium for:\n• All 198 DOT practice questions\n• Unlimited AI coaching\n• Advanced features\n\nStart your 7-day free trial?`)
+              if (upgrade) {
+                // Redirect to upgrade
+                window.location.href = '/ai-coach'
+              }
+            } else {
+              setCurrentIndex(Math.min(availablePrompts.length - 1, currentIndex + 1))
+            }
+          }}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium"
+        >
+          {currentIndex + 1 >= availablePrompts.length && !subscription.isPremium ? '🔒 Upgrade' : 'Next →'}
+        </button>
+      </div>
+
+      {/* Premium Upgrade Banner for Free Users */}
+      {!subscription.isPremium && currentIndex >= 8 && (
+        <div className="mt-8 bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-lg text-center">
+          <h3 className="text-2xl font-bold mb-2">🚀 Unlock All 198 Questions!</h3>
+          <p className="mb-4">You're almost at the end of free questions. Get premium access to master all DOT scenarios!</p>
+          <button
+            onClick={() => window.location.href = '/ai-coach'}
+            className="bg-white text-blue-600 px-8 py-3 rounded-lg font-bold hover:bg-gray-100 transition-colors"
+          >
+            Start 7-Day Free Trial
+          </button>
+        </div>
+      )}
 
       {/* Status */}
       {isPlaying && (
