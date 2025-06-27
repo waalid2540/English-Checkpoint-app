@@ -214,7 +214,7 @@ const AICoach = () => {
                     },
                     body: JSON.stringify({
                       priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
-                      successUrl: `${window.location.origin}/ai-coach?success=true`,
+                      successUrl: `${window.location.origin}/?success=true`,
                       cancelUrl: `${window.location.origin}/ai-coach?canceled=true`
                     })
                   })
@@ -603,7 +603,7 @@ ${mode.description}
                             },
                             body: JSON.stringify({
                               priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
-                              successUrl: `${window.location.origin}/ai-coach?success=true`,
+                              successUrl: `${window.location.origin}/?success=true`,
                               cancelUrl: `${window.location.origin}/ai-coach?canceled=true`
                             })
                           })
