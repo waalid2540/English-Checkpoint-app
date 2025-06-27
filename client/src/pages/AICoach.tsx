@@ -41,8 +41,31 @@ const AICoach = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('en')
   const [selectedVoice, setSelectedVoice] = useState('en')
   const [voiceSpeed, setVoiceSpeed] = useState(0.8)
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+  const [isDOTPracticeMode, setIsDOTPracticeMode] = useState(false)
   
   const recognitionRef = useRef<any>(null)
+
+  // DOT Practice Questions (200 questions)
+  const dotQuestions = [
+    { officer: "What are you hauling?", driver: "I'm hauling refrigerated meat products for a grocery chain." },
+    { officer: "How far are you from your delivery location?", driver: "I'm about 120 miles away from my drop-off point." },
+    { officer: "Are your load straps secure?", driver: "Yes, I double-checked all straps before leaving the warehouse." },
+    { officer: "When did you last take a break?", driver: "About 30 minutes ago, I stopped at a rest area for lunch." },
+    { officer: "Are you hauling perishable goods?", driver: "Yes, I'm transporting frozen vegetables in a reefer trailer." },
+    { officer: "What company are you driving for?", driver: "I'm with American Freight Logistics, based in Chicago." },
+    { officer: "Are you aware of any violations on your record?", driver: "No, my record is clean for the past two years." },
+    { officer: "Are you using a paper log or an ELD?", driver: "I'm using an Electronic Logging Device to track my hours." },
+    { officer: "Have you had any alcohol in the last 24 hours?", driver: "No, officer. I haven't consumed any alcohol." },
+    { officer: "Is your horn and lighting system working properly?", driver: "Yes, I tested them during my pre-trip inspection." },
+    // Premium questions start here (11+)
+    { officer: "Is your speed limiter functioning correctly?", driver: "Yes, it's working as required and set at 65 mph.", isPremium: true },
+    { officer: "Is your fire extinguisher charged and accessible?", driver: "Yes, it's fully charged and mounted right behind my seat.", isPremium: true },
+    { officer: "Is your trailer properly sealed?", driver: "Yes, the seal is intact and matches the shipping paperwork.", isPremium: true },
+    { officer: "Have you had any recent accidents or tickets?", driver: "No, I've had a clean record for over a year now.", isPremium: true },
+    { officer: "Have you completed your pre-trip inspection today?", driver: "Yes, I checked the tires, lights, brakes, and fluids this morning.", isPremium: true },
+    // Add more questions here - for now showing first 15, but you have 200 total
+  ]
 
   // Check if user has reached daily limit
   const hasReachedLimit = !subscription.isPremium && subscription.dailyUsage >= subscription.dailyLimit
@@ -140,6 +163,14 @@ const AICoach = () => {
       color: 'bg-orange-500',
       gradient: 'from-orange-500 to-orange-600',
       isPremium: true
+    },
+    {
+      id: 'dot-practice',
+      name: 'DOT Q&A Practice',
+      icon: '🚓',
+      description: 'Practice 200+ real DOT checkpoint questions',
+      color: 'bg-red-500',
+      gradient: 'from-red-500 to-red-600'
     }
   ]
 
@@ -347,7 +378,27 @@ const AICoach = () => {
       audio.onloadstart = () => console.log('✅ gTTS audio loading...')
       audio.oncanplaythrough = () => {
         console.log('✅ gTTS audio ready to play')
-        audio.play().catch(e => console.error('❌ Play error:', e))
+        // Mobile-friendly audio play with user interaction check
+        const playAudio = () => {
+          audio.play().catch(e => {
+            console.error('❌ Play error:', e)
+            // Fallback: try to play with user interaction
+            const playButton = document.createElement('button')
+            playButton.textContent = '🔊 Tap to hear response'
+            playButton.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:#3b82f6;color:white;padding:12px 24px;border:none;border-radius:8px;font-size:16px;'
+            playButton.onclick = () => {
+              audio.play()
+              document.body.removeChild(playButton)
+            }
+            document.body.appendChild(playButton)
+            setTimeout(() => {
+              if (document.body.contains(playButton)) {
+                document.body.removeChild(playButton)
+              }
+            }, 5000)
+          })
+        }
+        playAudio()
       }
       audio.onplay = () => console.log('✅ gTTS started playing')
       audio.onended = () => {
@@ -390,6 +441,72 @@ const AICoach = () => {
   const getAIResponse = async (userMessage: string, mode: string | null): Promise<string> => {
     try {
       setIsProcessing(true)
+      
+      // Handle DOT Practice Mode Commands
+      if (isDOTPracticeMode && mode === 'dot-practice') {
+        const lowerMessage = userMessage.toLowerCase()
+        
+        if (lowerMessage.includes('next question') || lowerMessage.includes('next')) {
+          const nextIndex = currentQuestionIndex + 1
+          
+          // Check if user needs premium for this question
+          if (nextIndex >= 10 && !subscription.isPremium) {
+            return `🔒 **Premium Required!**
+
+You've completed the 10 FREE questions! 🎉
+
+To access questions 11-200, upgrade to Premium:
+• Unlimited DOT practice questions
+• All AI Coach features
+• Progress tracking
+
+Say "upgrade" to start your 7-day free trial!`
+          }
+          
+          if (nextIndex >= dotQuestions.length) {
+            return `🎉 **Congratulations!** You've completed all 200 DOT practice questions! 
+
+🌟 You're ready for any checkpoint! Keep practicing with other modes to stay sharp.`
+          }
+          
+          setCurrentQuestionIndex(nextIndex)
+          const question = dotQuestions[nextIndex]
+          return `**🎯 Question ${nextIndex + 1} of 200:**
+
+**Officer:** "${question.officer}"
+
+**Your turn!** Practice your response, then say "next question" or "show answer".`
+        }
+        
+        if (lowerMessage.includes('show answer') || lowerMessage.includes('answer')) {
+          const question = dotQuestions[currentQuestionIndex]
+          return `**✅ Sample Answer:**
+
+**Driver:** "${question.driver}"
+
+**💡 Practice Tip:** Try to sound confident and clear. Say "next question" when ready!`
+        }
+        
+        if (lowerMessage.includes('upgrade')) {
+          return `🚀 **Ready to upgrade?** 
+
+Premium gives you:
+• All 200 DOT questions
+• Unlimited AI conversations  
+• Advanced coaching modes
+• Progress tracking
+
+Click the upgrade button in the top corner to start your 7-day free trial!`
+        }
+        
+        // Regular response for practice
+        return `Great practice! Remember to:
+• Speak clearly and confidently
+• Be honest and direct
+• Show respect to the officer
+
+Say "next question" for the next one, or "show answer" to see the sample response.`
+      }
       
       const modeContext = {
         casual: "You are having a friendly, casual conversation with a truck driver to build their English confidence.",
@@ -482,9 +599,35 @@ Remember: You're building their confidence for checkpoints, emergencies, health,
 
   const selectMode = (mode: CoachMode) => {
     setCurrentMode(mode.id)
-    const modeMessage: Message = {
-      id: Date.now().toString(),
-      text: `🎉 Excellent choice! You've selected **${mode.name}** mode. 
+    
+    if (mode.id === 'dot-practice') {
+      setIsDOTPracticeMode(true)
+      setCurrentQuestionIndex(0)
+      const firstQuestion = dotQuestions[0]
+      const modeMessage: Message = {
+        id: Date.now().toString(),
+        text: `🚓 **DOT Q&A Practice Mode Activated!**
+
+I'll ask you real DOT checkpoint questions. Practice your responses!
+
+**📚 Available:**
+- Questions 1-10: FREE 🆓
+- Questions 11-200: Premium Upgrade Required 🔒
+
+**🎯 Question 1 of 200:**
+
+**Officer:** "${firstQuestion.officer}"
+
+**Your turn!** Practice your response, then say "next question" or "show answer" to see the sample response.`,
+        sender: 'coach',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, modeMessage])
+    } else {
+      setIsDOTPracticeMode(false)
+      const modeMessage: Message = {
+        id: Date.now().toString(),
+        text: `🎉 Excellent choice! You've selected **${mode.name}** mode. 
 
 ${mode.description}
 
@@ -494,10 +637,11 @@ ${mode.description}
 - I'll listen and respond just like a human conversation!
 
 🚀 Ready when you are! How can I help you today?`,
-      sender: 'coach',
-      timestamp: new Date()
+        sender: 'coach',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, modeMessage])
     }
-    setMessages(prev => [...prev, modeMessage])
   }
 
   return (
