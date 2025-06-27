@@ -24,6 +24,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Parse JSON for most routes, but not for Stripe webhook
+app.use('/webhook/stripe', express.raw({type: 'application/json'}));
 app.use(express.json());
 
 // Debug environment variables
@@ -31,6 +33,7 @@ console.log('🔧 Environment Check:');
 console.log('- OpenAI API Key:', process.env.OPENAI_API_KEY ? 'SET ✅' : 'MISSING ❌');
 console.log('- Stripe Secret:', process.env.STRIPE_SECRET_KEY ? 'SET ✅' : 'MISSING ❌');
 console.log('- Supabase URL:', process.env.SUPABASE_URL ? 'SET ✅' : 'MISSING ❌');
+console.log('- Supabase Service Key:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET ✅' : 'MISSING ❌');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -53,10 +56,23 @@ app.get('/api/stripe/config', (req, res) => {
 app.post('/api/stripe/create-checkout-session', async (req, res) => {
   try {
     const { priceId, successUrl, cancelUrl } = req.body;
+    const authToken = req.headers.authorization?.replace('Bearer ', '');
     
     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
     
-    const session = await stripe.checkout.sessions.create({
+    // Get user info to link with Stripe customer
+    let userEmail = null;
+    let userId = null;
+    
+    if (authToken) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(authToken);
+      if (!authError && user) {
+        userEmail = user.email;
+        userId = user.id;
+      }
+    }
+    
+    const sessionData = {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [
@@ -69,12 +85,23 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
       cancel_url: cancelUrl,
       subscription_data: {
         trial_period_days: 7,
+        metadata: {
+          user_id: userId || 'anonymous'
+        }
       },
-    });
+    };
+    
+    // Add customer email if available
+    if (userEmail) {
+      sessionData.customer_email = userEmail;
+    }
+    
+    const session = await stripe.checkout.sessions.create(sessionData);
 
+    console.log('✅ Stripe checkout session created for user:', userId || 'anonymous');
     res.json({ url: session.url });
   } catch (error) {
-    console.error('Stripe checkout error:', error);
+    console.error('❌ Stripe checkout error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -82,20 +109,78 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
 // Check user subscription status
 app.get('/api/subscription/status', async (req, res) => {
   try {
-    // For now, return free user status (you'll connect this to your database)
-    const userId = req.headers.authorization?.replace('Bearer ', '') || 'anonymous';
+    const authToken = req.headers.authorization?.replace('Bearer ', '');
     
-    // TODO: Check actual subscription status from database
-    // For now, everyone is free user
+    if (!authToken) {
+      return res.json({
+        isPremium: false,
+        trialDaysLeft: 0,
+        dailyUsage: 0,
+        dailyLimit: 3,
+        subscriptionId: null
+      });
+    }
+
+    // Verify the JWT token and get user info
+    const { data: { user }, error: authError } = await supabase.auth.getUser(authToken);
+    
+    if (authError || !user) {
+      console.log('❌ Auth error:', authError?.message);
+      return res.json({
+        isPremium: false,
+        trialDaysLeft: 0,
+        dailyUsage: 0,
+        dailyLimit: 3,
+        subscriptionId: null
+      });
+    }
+
+    // Check user's subscription status
+    const { data: subscription, error: subError } = await supabase
+      .from('user_subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    if (subError && subError.code !== 'PGRST116') {
+      console.error('❌ Subscription query error:', subError);
+      return res.status(500).json({ error: 'Database error' });
+    }
+
+    // Calculate subscription status
+    let isPremium = false;
+    let trialDaysLeft = 0;
+    
+    if (subscription) {
+      const now = new Date();
+      
+      // Check if subscription is active
+      if (subscription.status === 'active' || subscription.status === 'trialing') {
+        isPremium = true;
+      }
+      
+      // Calculate trial days left
+      if (subscription.trial_end) {
+        const trialEnd = new Date(subscription.trial_end);
+        const daysLeft = Math.max(0, Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24)));
+        trialDaysLeft = daysLeft;
+      }
+    }
+
+    // Get daily usage (mock for now - you can implement actual tracking)
+    const dailyUsage = 0; // TODO: Implement actual usage tracking
+    const dailyLimit = isPremium ? 1000 : 3; // Premium users get unlimited (high limit)
+
     res.json({
-      isPremium: false,
-      trialDaysLeft: 0,
-      dailyUsage: 0,
-      dailyLimit: 3,
-      subscriptionId: null
+      isPremium,
+      trialDaysLeft,
+      dailyUsage,
+      dailyLimit,
+      subscriptionId: subscription?.stripe_subscription_id || null
     });
+    
   } catch (error) {
-    console.error('Subscription status error:', error);
+    console.error('❌ Subscription status error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -371,8 +456,15 @@ app.post('/api/mcp/call', (req, res) => {
   res.json(response);
 });
 
+// Initialize Supabase client
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 // Stripe webhook endpoint
-app.post('/webhook/stripe', express.raw({type: 'application/json'}), async (req, res) => {
+app.post('/webhook/stripe', async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
   
@@ -385,12 +477,27 @@ app.post('/webhook/stripe', express.raw({type: 'application/json'}), async (req,
   try {
     // Verify webhook signature (when using real Stripe)
     console.log('📧 Stripe webhook received:', req.headers['stripe-signature'] ? 'with signature' : 'no signature');
+    console.log('📦 Raw body type:', typeof req.body);
+    console.log('📦 Raw body:', req.body);
     
-    // For development, just parse the body
-    event = JSON.parse(req.body);
+    // Handle different body formats
+    let rawBody;
+    if (Buffer.isBuffer(req.body)) {
+      rawBody = req.body.toString();
+    } else if (typeof req.body === 'string') {
+      rawBody = req.body;
+    } else {
+      rawBody = JSON.stringify(req.body);
+    }
+    
+    console.log('🔄 Parsed body:', rawBody.substring(0, 200) + '...');
+    
+    // Parse the JSON
+    event = JSON.parse(rawBody);
     console.log('🔔 Stripe event:', event.type);
   } catch (err) {
     console.log(`❌ Webhook signature verification failed:`, err.message);
+    console.log('📦 Body that failed:', req.body);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
@@ -399,23 +506,107 @@ app.post('/webhook/stripe', express.raw({type: 'application/json'}), async (req,
     switch (event.type) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
-        console.log('📝 Subscription updated:', event.data.object.id);
-        // Here you would update your Supabase database
+        const subscription = event.data.object;
+        console.log('📝 Subscription updated:', subscription.id);
+        
+        // Get user ID from metadata
+        const userId = subscription.metadata?.user_id;
+        
+        if (!userId || userId === 'anonymous') {
+          console.log('⚠️ No user ID found in subscription metadata');
+          break;
+        }
+        
+        // Update user subscription status in Supabase
+        const { error: updateError } = await supabase
+          .from('user_subscriptions')
+          .upsert({
+            user_id: userId,
+            stripe_customer_id: subscription.customer,
+            stripe_subscription_id: subscription.id,
+            status: subscription.status,
+            current_period_start: new Date(subscription.current_period_start * 1000),
+            current_period_end: new Date(subscription.current_period_end * 1000),
+            trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+            updated_at: new Date()
+          }, {
+            onConflict: 'user_id'
+          });
+        
+        if (updateError) {
+          console.error('❌ Error updating subscription:', updateError);
+        } else {
+          console.log('✅ Subscription status updated in database for user:', userId);
+        }
         break;
       
       case 'customer.subscription.trial_will_end':
         console.log('⏰ Trial ending soon for:', event.data.object.customer);
-        // Send trial ending email
+        // Send trial ending email notification
         break;
       
       case 'invoice.payment_succeeded':
-        console.log('✅ Payment succeeded:', event.data.object.subscription);
-        // Activate premium features
+        const invoice = event.data.object;
+        console.log('✅ Payment succeeded:', invoice.subscription);
+        
+        // Activate premium features by updating subscription status
+        if (invoice.subscription) {
+          const { error: activateError } = await supabase
+            .from('user_subscriptions')
+            .update({
+              status: 'active',
+              updated_at: new Date()
+            })
+            .eq('stripe_subscription_id', invoice.subscription);
+          
+          if (activateError) {
+            console.error('❌ Error activating premium features:', activateError);
+          } else {
+            console.log('✅ Premium features activated');
+          }
+        }
         break;
       
       case 'invoice.payment_failed':
-        console.log('❌ Payment failed:', event.data.object.subscription);
-        // Handle failed payment
+        const failedInvoice = event.data.object;
+        console.log('❌ Payment failed:', failedInvoice.subscription);
+        
+        // Deactivate premium features
+        if (failedInvoice.subscription) {
+          const { error: deactivateError } = await supabase
+            .from('user_subscriptions')
+            .update({
+              status: 'past_due',
+              updated_at: new Date()
+            })
+            .eq('stripe_subscription_id', failedInvoice.subscription);
+          
+          if (deactivateError) {
+            console.error('❌ Error deactivating features:', deactivateError);
+          } else {
+            console.log('✅ Subscription marked as past due');
+          }
+        }
+        break;
+      
+      case 'customer.subscription.deleted':
+        const deletedSub = event.data.object;
+        console.log('🗑️ Subscription canceled:', deletedSub.id);
+        
+        // Mark subscription as canceled
+        const { error: cancelError } = await supabase
+          .from('user_subscriptions')
+          .update({
+            status: 'canceled',
+            updated_at: new Date()
+          })
+          .eq('stripe_subscription_id', deletedSub.id);
+        
+        if (cancelError) {
+          console.error('❌ Error canceling subscription:', cancelError);
+        } else {
+          console.log('✅ Subscription canceled in database');
+        }
         break;
       
       default:
