@@ -33,9 +33,12 @@ export const useSubscription = (): SubscriptionStatus => {
     try {
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
       
+      // Get session token from Supabase
+      const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
+      
       const response = await fetch(`${API_BASE_URL}/api/subscription/status`, {
         headers: {
-          'Authorization': `Bearer ${user?.access_token}`
+          'Authorization': `Bearer ${session?.access_token || ''}`
         }
       })
       

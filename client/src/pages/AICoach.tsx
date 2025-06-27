@@ -200,24 +200,32 @@ const AICoach = () => {
           
           <div className="flex space-x-3">
             <button
-              onClick={() => {
-                // Create Stripe checkout session for trial
-                fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
-                    successUrl: `${window.location.origin}/ai-coach?success=true`,
-                    cancelUrl: `${window.location.origin}/ai-coach?canceled=true`
+              onClick={async () => {
+                try {
+                  // Get auth token
+                  const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
+                  
+                  // Create Stripe checkout session for trial
+                  const response = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
+                    method: 'POST',
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${session?.access_token || ''}`
+                    },
+                    body: JSON.stringify({
+                      priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
+                      successUrl: `${window.location.origin}/ai-coach?success=true`,
+                      cancelUrl: `${window.location.origin}/ai-coach?canceled=true`
+                    })
                   })
-                })
-                .then(res => res.json())
-                .then(data => {
+                  
+                  const data = await response.json()
                   if (data.url) {
                     window.location.href = data.url
                   }
-                })
-                .catch(err => console.error('Stripe error:', err))
+                } catch (err) {
+                  console.error('Stripe error:', err)
+                }
               }}
               className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity"
             >
@@ -576,7 +584,7 @@ ${mode.description}
               {modes.map((mode) => (
                 <button
                   key={mode.id}
-                  onClick={() => {
+                  onClick={async () => {
                     if (mode.isPremium && !subscription.isPremium) {
                       // Show premium upgrade prompt
                       const upgradePrompt = confirm(
@@ -584,22 +592,29 @@ ${mode.description}
                       )
                       if (upgradePrompt) {
                         // Start Stripe checkout for trial
-                        fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
-                            successUrl: `${window.location.origin}/ai-coach?success=true`,
-                            cancelUrl: `${window.location.origin}/ai-coach?canceled=true`
+                        try {
+                          const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
+                          
+                          const response = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
+                            method: 'POST',
+                            headers: { 
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${session?.access_token || ''}`
+                            },
+                            body: JSON.stringify({
+                              priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
+                              successUrl: `${window.location.origin}/ai-coach?success=true`,
+                              cancelUrl: `${window.location.origin}/ai-coach?canceled=true`
+                            })
                           })
-                        })
-                        .then(res => res.json())
-                        .then(data => {
+                          
+                          const data = await response.json()
                           if (data.url) {
                             window.location.href = data.url
                           }
-                        })
-                        .catch(err => console.error('Stripe error:', err))
+                        } catch (err) {
+                          console.error('Stripe error:', err)
+                        }
                       }
                     } else {
                       selectMode(mode)
