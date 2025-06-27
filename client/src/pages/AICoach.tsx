@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import { useSubscription } from '../hooks/useSubscription'
+import { dotQuestions } from '../data/dot-questions'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
 
@@ -46,26 +47,6 @@ const AICoach = () => {
   
   const recognitionRef = useRef<any>(null)
 
-  // DOT Practice Questions (200 questions)
-  const dotQuestions = [
-    { officer: "What are you hauling?", driver: "I'm hauling refrigerated meat products for a grocery chain." },
-    { officer: "How far are you from your delivery location?", driver: "I'm about 120 miles away from my drop-off point." },
-    { officer: "Are your load straps secure?", driver: "Yes, I double-checked all straps before leaving the warehouse." },
-    { officer: "When did you last take a break?", driver: "About 30 minutes ago, I stopped at a rest area for lunch." },
-    { officer: "Are you hauling perishable goods?", driver: "Yes, I'm transporting frozen vegetables in a reefer trailer." },
-    { officer: "What company are you driving for?", driver: "I'm with American Freight Logistics, based in Chicago." },
-    { officer: "Are you aware of any violations on your record?", driver: "No, my record is clean for the past two years." },
-    { officer: "Are you using a paper log or an ELD?", driver: "I'm using an Electronic Logging Device to track my hours." },
-    { officer: "Have you had any alcohol in the last 24 hours?", driver: "No, officer. I haven't consumed any alcohol." },
-    { officer: "Is your horn and lighting system working properly?", driver: "Yes, I tested them during my pre-trip inspection." },
-    // Premium questions start here (11+)
-    { officer: "Is your speed limiter functioning correctly?", driver: "Yes, it's working as required and set at 65 mph.", isPremium: true },
-    { officer: "Is your fire extinguisher charged and accessible?", driver: "Yes, it's fully charged and mounted right behind my seat.", isPremium: true },
-    { officer: "Is your trailer properly sealed?", driver: "Yes, the seal is intact and matches the shipping paperwork.", isPremium: true },
-    { officer: "Have you had any recent accidents or tickets?", driver: "No, I've had a clean record for over a year now.", isPremium: true },
-    { officer: "Have you completed your pre-trip inspection today?", driver: "Yes, I checked the tires, lights, brakes, and fluids this morning.", isPremium: true },
-    // Add more questions here - for now showing first 15, but you have 200 total
-  ]
 
   // Check if user has reached daily limit
   const hasReachedLimit = !subscription.isPremium && subscription.dailyUsage >= subscription.dailyLimit
