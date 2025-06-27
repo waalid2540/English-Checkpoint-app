@@ -163,13 +163,37 @@ const QATraining = () => {
         </div>
 
         <button
-          onClick={() => {
+          onClick={async () => {
             if (currentIndex + 1 >= availablePrompts.length && !subscription.isPremium) {
               // Show upgrade prompt
-              const upgrade = confirm(`🔒 Unlock ${samplePrompts.length - 10} more questions!\n\nUpgrade to Premium for:\n• All 198 DOT practice questions\n• Unlimited AI coaching\n• Advanced features\n\nStart your 7-day free trial?`)
+              const upgrade = confirm(`🔒 Unlock ${samplePrompts.length - 10} more questions!\n\nUpgrade to Premium for $9.99/month:\n• All 198 DOT practice questions\n• Unlimited AI coaching\n• Advanced features\n\nStart your 7-day free trial?`)
               if (upgrade) {
-                // Redirect to upgrade
-                window.location.href = '/ai-coach'
+                // Start Stripe checkout directly
+                try {
+                  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
+                  const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
+                  
+                  const response = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
+                    method: 'POST',
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${session?.access_token || ''}`
+                    },
+                    body: JSON.stringify({
+                      priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
+                      successUrl: `${window.location.origin}/dot-practice?success=true`,
+                      cancelUrl: `${window.location.origin}/dot-practice?canceled=true`
+                    })
+                  })
+                  
+                  const data = await response.json()
+                  if (data.url) {
+                    window.location.href = data.url
+                  }
+                } catch (err) {
+                  console.error('Stripe error:', err)
+                  alert('Error starting checkout. Please try again.')
+                }
               }
             } else {
               setCurrentIndex(Math.min(availablePrompts.length - 1, currentIndex + 1))
@@ -187,10 +211,36 @@ const QATraining = () => {
           <h3 className="text-2xl font-bold mb-2">🚀 Unlock All 198 Questions!</h3>
           <p className="mb-4">You're almost at the end of free questions. Get premium access to master all DOT scenarios!</p>
           <button
-            onClick={() => window.location.href = '/ai-coach'}
+            onClick={async () => {
+              try {
+                const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
+                const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
+                
+                const response = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
+                  method: 'POST',
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token || ''}`
+                  },
+                  body: JSON.stringify({
+                    priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
+                    successUrl: `${window.location.origin}/dot-practice?success=true`,
+                    cancelUrl: `${window.location.origin}/dot-practice?canceled=true`
+                  })
+                })
+                
+                const data = await response.json()
+                if (data.url) {
+                  window.location.href = data.url
+                }
+              } catch (err) {
+                console.error('Stripe error:', err)
+                alert('Error starting checkout. Please try again.')
+              }
+            }}
             className="bg-white text-blue-600 px-8 py-3 rounded-lg font-bold hover:bg-gray-100 transition-colors"
           >
-            Start 7-Day Free Trial
+            Start 7-Day Free Trial - $9.99/month
           </button>
         </div>
       )}
