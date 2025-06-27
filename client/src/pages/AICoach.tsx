@@ -99,59 +99,6 @@ const AICoach = () => {
       description: 'Practice health and emergency vocabulary',
       color: 'bg-pink-500',
       gradient: 'from-pink-500 to-pink-600'
-    },
-    {
-      id: 'progress',
-      name: 'Progress Mode',
-      icon: '📊',
-      description: 'Review your learning progress and weak areas',
-      color: 'bg-indigo-500',
-      gradient: 'from-indigo-500 to-indigo-600',
-      isPremium: true
-    },
-    {
-      id: 'dot-regulations',
-      name: 'DOT Regulations',
-      icon: '📋',
-      description: 'Learn federal trucking regulations and compliance',
-      color: 'bg-purple-500',
-      gradient: 'from-purple-500 to-purple-600',
-      isPremium: true
-    },
-    {
-      id: 'smart-vocabulary',
-      name: 'Smart Vocabulary',
-      icon: '🧠',
-      description: 'Advanced trucking and technical vocabulary training',
-      color: 'bg-cyan-500',
-      gradient: 'from-cyan-500 to-cyan-600',
-      isPremium: true
-    },
-    {
-      id: 'pronunciation',
-      name: 'Pronunciation Coach',
-      icon: '🎤',
-      description: 'Perfect your pronunciation with AI feedback',
-      color: 'bg-pink-500',
-      gradient: 'from-pink-500 to-pink-600',
-      isPremium: true
-    },
-    {
-      id: 'checkpoint-practice',
-      name: 'Checkpoint Practice',
-      icon: '🎭',
-      description: 'Realistic DOT checkpoint scenario simulations',
-      color: 'bg-orange-500',
-      gradient: 'from-orange-500 to-orange-600',
-      isPremium: true
-    },
-    {
-      id: 'dot-practice',
-      name: 'DOT Q&A Practice',
-      icon: '🚓',
-      description: 'Practice 200+ real DOT checkpoint questions',
-      color: 'bg-red-500',
-      gradient: 'from-red-500 to-red-600'
     }
   ]
 
@@ -203,11 +150,15 @@ const AICoach = () => {
             <h3 className="font-semibold text-gray-800 mb-3">Premium Benefits:</h3>
             <ul className="text-sm text-gray-600 space-y-2 text-left">
               <li>✅ Unlimited AI Coach conversations</li>
+              <li>✅ All 198 DOT practice questions</li>
               <li>✅ Advanced voice features</li>
-              <li>✅ MCP Enhanced tools</li>
               <li>✅ Progress tracking</li>
-              <li>✅ DOT regulation access</li>
+              <li>✅ All coaching modes unlocked</li>
             </ul>
+            <div className="mt-4 text-center">
+              <span className="text-2xl font-bold text-blue-600">$9.99/month</span>
+              <span className="text-sm text-gray-500 block">7-day free trial</span>
+            </div>
           </div>
           
           <div className="flex space-x-3">
@@ -423,71 +374,6 @@ const AICoach = () => {
     try {
       setIsProcessing(true)
       
-      // Handle DOT Practice Mode Commands
-      if (isDOTPracticeMode && mode === 'dot-practice') {
-        const lowerMessage = userMessage.toLowerCase()
-        
-        if (lowerMessage.includes('next question') || lowerMessage.includes('next')) {
-          const nextIndex = currentQuestionIndex + 1
-          
-          // Check if user needs premium for this question
-          if (nextIndex >= 10 && !subscription.isPremium) {
-            return `🔒 **Premium Required!**
-
-You've completed the 10 FREE questions! 🎉
-
-To access questions 11-200, upgrade to Premium:
-• Unlimited DOT practice questions
-• All AI Coach features
-• Progress tracking
-
-Say "upgrade" to start your 7-day free trial!`
-          }
-          
-          if (nextIndex >= dotQuestions.length) {
-            return `🎉 **Congratulations!** You've completed all 200 DOT practice questions! 
-
-🌟 You're ready for any checkpoint! Keep practicing with other modes to stay sharp.`
-          }
-          
-          setCurrentQuestionIndex(nextIndex)
-          const question = dotQuestions[nextIndex]
-          return `**🎯 Question ${nextIndex + 1} of 200:**
-
-**Officer:** "${question.officer}"
-
-**Your turn!** Practice your response, then say "next question" or "show answer".`
-        }
-        
-        if (lowerMessage.includes('show answer') || lowerMessage.includes('answer')) {
-          const question = dotQuestions[currentQuestionIndex]
-          return `**✅ Sample Answer:**
-
-**Driver:** "${question.driver}"
-
-**💡 Practice Tip:** Try to sound confident and clear. Say "next question" when ready!`
-        }
-        
-        if (lowerMessage.includes('upgrade')) {
-          return `🚀 **Ready to upgrade?** 
-
-Premium gives you:
-• All 200 DOT questions
-• Unlimited AI conversations  
-• Advanced coaching modes
-• Progress tracking
-
-Click the upgrade button in the top corner to start your 7-day free trial!`
-        }
-        
-        // Regular response for practice
-        return `Great practice! Remember to:
-• Speak clearly and confidently
-• Be honest and direct
-• Show respect to the officer
-
-Say "next question" for the next one, or "show answer" to see the sample response.`
-      }
       
       const modeContext = {
         casual: "You are having a friendly, casual conversation with a truck driver to build their English confidence.",
