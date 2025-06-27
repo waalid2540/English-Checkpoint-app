@@ -246,7 +246,7 @@ const AICoach = () => {
           }
           setMessages(prev => [...prev, userMessage])
           
-          // Get AI response
+          // Get AI response and speak it back (voice conversation)
           const aiReply = await getAIResponse(transcript, currentMode)
           
           const coachResponse: Message = {
@@ -257,7 +257,7 @@ const AICoach = () => {
           }
           setMessages(prev => [...prev, coachResponse])
           
-          // AI speaks back
+          // AI speaks back in voice conversations
           speakText(aiReply)
         }
       }
@@ -482,7 +482,7 @@ Remember: You're not just teaching English - you're having a real conversation w
     }
   }
 
-  const handleSendMessage = async (messageText?: string) => {
+  const handleSendMessage = async (messageText?: string, shouldSpeak: boolean = false) => {
     const textToSend = messageText || inputText
     if (!textToSend.trim()) return
 
@@ -509,8 +509,10 @@ Remember: You're not just teaching English - you're having a real conversation w
 
       setMessages(prev => [...prev, coachResponse])
       
-      // Speak the response
-      speakText(aiReply)
+      // Only speak the response if it came from voice input
+      if (shouldSpeak) {
+        speakText(aiReply)
+      }
       
     } catch (error) {
       console.error('Error getting AI response:', error)
