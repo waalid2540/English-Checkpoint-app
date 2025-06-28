@@ -25,8 +25,18 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/resend-confirmation" element={<ResendConfirmation />} />
           
-          {/* Protected routes */}
+          {/* Public home page */}
           <Route path="/" element={
+            <div className="min-h-screen bg-gray-50">
+              <Navbar />
+              <main className="container mx-auto px-4 py-8">
+                <Home />
+              </main>
+            </div>
+          } />
+          
+          {/* Protected routes */}
+          <Route path="/dashboard" element={
             <ProtectedRoute>
               <div className="min-h-screen bg-gray-50">
                 <Navbar />

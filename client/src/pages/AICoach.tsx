@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import { useSubscription } from '../hooks/useSubscription'
 import { dotQuestions } from '../data/dot-questions'
+import UpgradePopup from '../components/UpgradePopup'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
 
@@ -44,6 +45,8 @@ const AICoach = () => {
   const [voiceSpeed, setVoiceSpeed] = useState(0.8)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [isDOTPracticeMode, setIsDOTPracticeMode] = useState(false)
+  const [showUpgradePopup, setShowUpgradePopup] = useState(false)
+  const [upgradeTrigger, setUpgradeTrigger] = useState<'daily_limit' | 'dot_questions' | 'premium_feature'>('daily_limit')
   
   const recognitionRef = useRef<any>(null)
 
@@ -129,82 +132,13 @@ const AICoach = () => {
     { code: 'zh', name: 'Chinese', flag: '🇨🇳' }
   ]
 
-  // Paywall Component for Free Users
-  const PaywallOverlay = () => {
-    if (!hasReachedLimit) return null
-    
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <span className="text-white text-3xl">🚛</span>
-          </div>
-          
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Daily Limit Reached!</h2>
-          <p className="text-gray-600 mb-6">
-            You've used all {subscription.dailyLimit} free conversations today. 
-            Upgrade to Premium for unlimited access!
-          </p>
-          
-          <div className="bg-blue-50 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-gray-800 mb-3">Premium Benefits:</h3>
-            <ul className="text-sm text-gray-600 space-y-2 text-left">
-              <li>✅ Unlimited AI Coach conversations</li>
-              <li>✅ All 198 DOT practice questions</li>
-              <li>✅ Advanced voice features</li>
-              <li>✅ Progress tracking</li>
-              <li>✅ All coaching modes unlocked</li>
-            </ul>
-            <div className="mt-4 text-center">
-              <span className="text-2xl font-bold text-blue-600">$9.99/month</span>
-              <span className="text-sm text-gray-500 block">7-day free trial</span>
-            </div>
-          </div>
-          
-          <div className="flex space-x-3">
-            <button
-              onClick={async () => {
-                try {
-                  // Get auth token
-                  const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
-                  
-                  // Create Stripe checkout session for trial
-                  const response = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
-                    method: 'POST',
-                    headers: { 
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${session?.access_token || ''}`
-                    },
-                    body: JSON.stringify({
-                      priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
-                      successUrl: `${window.location.origin}/?success=true`,
-                      cancelUrl: `${window.location.origin}/ai-coach?canceled=true`
-                    })
-                  })
-                  
-                  const data = await response.json()
-                  if (data.url) {
-                    window.location.href = data.url
-                  }
-                } catch (err) {
-                  console.error('Stripe error:', err)
-                }
-              }}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity"
-            >
-              🚀 Start 7-Day Free Trial
-            </button>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-3 text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Maybe Later
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Show upgrade popup when hitting limits
+  useEffect(() => {
+    if (hasReachedLimit) {
+      setUpgradeTrigger('daily_limit')
+      setShowUpgradePopup(true)
+    }
+  }, [hasReachedLimit])
 
   // Browser Speech Recognition - WORKS IMMEDIATELY
   const startVoiceConversation = () => {
@@ -893,8 +827,12 @@ ${mode.description}
         </div>
       </div>
       
-      {/* Paywall Overlay */}
-      <PaywallOverlay />
+      {/* Upgrade Popup */}
+      <UpgradePopup 
+        isOpen={showUpgradePopup}
+        onClose={() => setShowUpgradePopup(false)}
+        trigger={upgradeTrigger}
+      />
     </div>
   )
 }

@@ -1,7 +1,10 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+import FeatureAccess from '../components/FeatureAccess'
 
 const Home = () => {
+  const { user } = useAuth()
   return (
     <div className="animate-fade-in">
       {/* Hero Section */}
@@ -17,12 +20,20 @@ const Home = () => {
             Practice conversations, learn DOT regulations, and communicate confidently on the road.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/qa-training" className="btn-primary text-lg px-8 py-4">
-              🚔 Start DOT Practice
-            </Link>
-            <Link to="/ai-coach" className="glass-effect text-white font-semibold py-4 px-8 rounded-xl hover:bg-white/20 transition-all duration-200">
-              🤖 AI Coach
-            </Link>
+            <FeatureAccess 
+              featureName="DOT Practice Training"
+              targetPath="/qa-training"
+              className="btn-primary text-lg px-8 py-4 cursor-pointer text-center"
+            >
+              🚔 Start DOT Practice {!user && '(Free Trial)'}
+            </FeatureAccess>
+            <FeatureAccess 
+              featureName="AI Coach"
+              targetPath="/ai-coach"
+              className="glass-effect text-white font-semibold py-4 px-8 rounded-xl hover:bg-white/20 transition-all duration-200 cursor-pointer text-center"
+            >
+              🤖 AI Coach {!user && '(Free Trial)'}
+            </FeatureAccess>
           </div>
         </div>
         
@@ -40,36 +51,54 @@ const Home = () => {
         
         <div className="grid md:grid-cols-2 gap-8">
           {/* Q&A Training Feature */}
-          <div className="card-feature group cursor-pointer" onClick={() => window.location.href = '/qa-training'}>
+          <FeatureAccess 
+            featureName="DOT Practice Training"
+            targetPath="/qa-training"
+            className="card-feature group cursor-pointer"
+          >
             <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">🚔</div>
             <h3 className="text-2xl font-bold mb-4 text-gray-800">DOT Practice</h3>
             <p className="text-gray-600 mb-6 text-lg">
               Practice with 200 real DOT scenarios between officers and drivers. 
               Professional voice-over helps you learn proper pronunciation and responses.
             </p>
+            {!user && (
+              <div className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 px-4 py-2 rounded-lg mb-4 text-sm font-semibold border border-green-200">
+                ✨ Sign up for FREE - Get 10 questions + limited features!
+              </div>
+            )}
             <div className="flex items-center text-blue-600 font-semibold group-hover:text-blue-700">
-              Start Training 
+              {user ? 'Continue Training' : 'Get Free Access'}
               <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>
-          </div>
+          </FeatureAccess>
 
           {/* AI Coach Feature */}
-          <div className="card-feature group cursor-pointer" onClick={() => window.location.href = '/ai-coach'}>
+          <FeatureAccess 
+            featureName="AI Coach"
+            targetPath="/ai-coach"
+            className="card-feature group cursor-pointer"
+          >
             <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">🤖</div>
             <h3 className="text-2xl font-bold mb-4 text-gray-800">AI Conversational Coach</h3>
             <p className="text-gray-600 mb-6 text-lg">
               Smart AI coach that helps with English practice, mechanic issues, dispatchers, 
               truck buying, and DOT conversations. Available in multiple languages.
             </p>
+            {!user && (
+              <div className="bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 px-4 py-2 rounded-lg mb-4 text-sm font-semibold border border-blue-200">
+                ✨ Sign up FREE - Get 5 daily chats + all modes!
+              </div>
+            )}
             <div className="flex items-center text-blue-600 font-semibold group-hover:text-blue-700">
-              Chat with AI 
+              {user ? 'Continue Coaching' : 'Get Free Access'}
               <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>
-          </div>
+          </FeatureAccess>
         </div>
       </section>
 
@@ -101,12 +130,16 @@ const Home = () => {
           Join thousands of truck drivers who have improved their communication skills 
           and confidence on the road.
         </p>
-        <Link to="/qa-training" className="btn-primary text-lg px-10 py-4 inline-flex items-center">
-          Get Started Today
+        <FeatureAccess 
+          featureName="DOT Practice Training"
+          targetPath="/qa-training"
+          className="btn-primary text-lg px-10 py-4 inline-flex items-center cursor-pointer"
+        >
+          {user ? 'Continue Learning' : 'Start Free Account'}
           <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
           </svg>
-        </Link>
+        </FeatureAccess>
       </section>
     </div>
   )

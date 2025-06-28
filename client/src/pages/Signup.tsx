@@ -69,8 +69,20 @@ const Signup = () => {
           <div className="w-20 h-20 bg-gradient-to-br from-green-600 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <span className="text-white text-3xl font-bold">🚛</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Join English Checkpoint</h1>
-          <p className="text-gray-600 mt-2">Create your account to start learning</p>
+          <h1 className="text-3xl font-bold text-gray-900">Start Your FREE Account</h1>
+          <p className="text-gray-600 mt-2">Get instant access to freemium features</p>
+          
+          {/* Freemium Benefits */}
+          <div className="mt-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 border border-green-200">
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">✨ What you get FREE:</h3>
+            <ul className="text-sm text-gray-700 space-y-1">
+              <li>• 10 DOT practice questions</li>
+              <li>• 5 daily AI conversations</li>
+              <li>• All 6 coaching modes</li>
+              <li>• Multilingual support</li>
+            </ul>
+            <p className="text-xs text-green-600 mt-2 font-medium">Upgrade anytime for unlimited access!</p>
+          </div>
         </div>
 
         {/* Signup Form */}
