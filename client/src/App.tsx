@@ -48,21 +48,15 @@ function App() {
           } />
           
           <Route path="/qa-training" element={
-            <ProtectedRoute>
-              <div className="min-h-screen bg-gray-50">
-                <Navbar />
-                <main className="container mx-auto px-4 py-8">
-                  <QATraining />
-                </main>
-              </div>
-            </ProtectedRoute>
+            <div className="min-h-screen bg-gray-50">
+              <Navbar />
+              <main className="container mx-auto px-4 py-8">
+                <QATraining />
+              </main>
+            </div>
           } />
           
-          <Route path="/ai-coach" element={
-            <ProtectedRoute>
-              <AICoach />
-            </ProtectedRoute>
-          } />
+          <Route path="/ai-coach" element={<AICoach />} />
           
           <Route path="/settings" element={
             <ProtectedRoute>

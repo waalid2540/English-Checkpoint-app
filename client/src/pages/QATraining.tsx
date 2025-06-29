@@ -1,10 +1,47 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { samplePrompts } from '../data/sample-prompts'
 import { useSubscription } from '../hooks/useSubscription'
+import { useAuth } from '../contexts/AuthContext'
 import UpgradePopup from '../components/UpgradePopup'
 
 const QATraining = () => {
+  const { user, loading } = useAuth()
+  const navigate = useNavigate()
   const subscription = useSubscription()
+  
+  // Redirect to signup if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/signup', {
+        state: {
+          from: '/qa-training',
+          featureName: 'DOT Practice Training',
+          message: 'Sign up now to access DOT Practice Training!'
+        }
+      })
+    }
+  }, [user, loading, navigate])
+  
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-700">Loading...</h2>
+          <p className="text-gray-500 mt-2">Checking your access...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  // Don't render if no user (will redirect)
+  if (!user) {
+    return null
+  }
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playingType, setPlayingType] = useState<'officer' | 'driver' | null>(null)
