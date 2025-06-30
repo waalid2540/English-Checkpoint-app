@@ -556,6 +556,81 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Initialize Stripe
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+// Stripe checkout session creation
+app.post('/api/stripe/create-checkout-session', async (req, res) => {
+  try {
+    console.log('💳 Creating Stripe checkout session...');
+    console.log('Request body:', req.body);
+    
+    const { priceId, successUrl, cancelUrl } = req.body;
+    
+    if (!priceId) {
+      return res.status(400).json({ 
+        error: 'Price ID is required' 
+      });
+    }
+
+    // Get user from auth token
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.replace('Bearer ', '');
+    
+    let userId = null;
+    if (token) {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (user) {
+          userId = user.id;
+          console.log('✅ User authenticated:', user.email);
+        }
+      } catch (authError) {
+        console.log('⚠️ Auth error, proceeding without user:', authError.message);
+      }
+    }
+
+    // Create checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata: {
+        user_id: userId || 'anonymous',
+        source: 'english_checkpoint_app'
+      },
+      subscription_data: {
+        metadata: {
+          user_id: userId || 'anonymous',
+        },
+        trial_period_days: 7, // 7-day free trial
+      },
+      allow_promotion_codes: true,
+    });
+
+    console.log('✅ Checkout session created:', session.id);
+    
+    res.json({
+      url: session.url,
+      sessionId: session.id
+    });
+
+  } catch (error) {
+    console.error('❌ Stripe checkout error:', error);
+    res.status(500).json({ 
+      error: error.message,
+      details: 'Failed to create checkout session'
+    });
+  }
+});
+
 // Stripe webhook endpoint
 app.post('/webhook/stripe', async (req, res) => {
   const sig = req.headers['stripe-signature'];

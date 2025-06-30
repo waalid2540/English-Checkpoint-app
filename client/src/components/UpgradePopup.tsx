@@ -20,9 +20,22 @@ const UpgradePopup: React.FC<UpgradePopupProps> = ({
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
 
   const handleUpgrade = async () => {
+    console.log('🚀 Starting upgrade process...')
     setLoading(true)
+    
     try {
+      // Get auth session
       const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
+      console.log('✅ Got auth session:', !!session)
+      
+      const requestData = {
+        priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
+        successUrl: `${window.location.origin}${window.location.pathname}?success=true`,
+        cancelUrl: `${window.location.origin}${window.location.pathname}?canceled=true`
+      }
+      
+      console.log('📡 Making Stripe request to:', `${API_BASE_URL}/api/stripe/create-checkout-session`)
+      console.log('📡 Request data:', requestData)
       
       const response = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
         method: 'POST',
@@ -30,20 +43,23 @@ const UpgradePopup: React.FC<UpgradePopupProps> = ({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token || ''}`
         },
-        body: JSON.stringify({
-          priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
-          successUrl: `${window.location.origin}${window.location.pathname}?success=true`,
-          cancelUrl: `${window.location.origin}${window.location.pathname}?canceled=true`
-        })
+        body: JSON.stringify(requestData)
       })
       
+      console.log('📡 Response status:', response.status)
       const data = await response.json()
+      console.log('📡 Response data:', data)
+      
       if (data.url) {
+        console.log('✅ Redirecting to Stripe:', data.url)
         window.location.href = data.url
+      } else {
+        console.error('❌ No URL in response:', data)
+        alert(`Error: ${data.error || 'No checkout URL received'}`)
       }
     } catch (err) {
-      console.error('Stripe error:', err)
-      alert('Error starting checkout. Please try again.')
+      console.error('❌ Stripe error:', err)
+      alert(`Error starting checkout: ${err.message}`)
     } finally {
       setLoading(false)
     }
