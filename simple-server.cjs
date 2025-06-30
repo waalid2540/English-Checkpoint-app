@@ -185,12 +185,29 @@ app.get('/api/subscription/status', async (req, res) => {
   }
 });
 
-// AI Chat endpoint with multilanguage support
+// Enhanced AI Chat endpoint with perfect memory and translations
 app.post('/api/ai/chat', async (req, res) => {
   try {
-    console.log('💬 Chat request:', req.body);
+    const { 
+      message, 
+      mode, 
+      systemPrompt, 
+      language = 'en', 
+      conversationHistory = [],
+      userProfile = {},
+      enhancedMode = false,
+      userId
+    } = req.body;
     
-    const { message, mode, systemPrompt, language = 'en' } = req.body;
+    console.log('🧠 Enhanced Chat Request:', {
+      message: message.substring(0, 100) + '...',
+      mode,
+      language,
+      hasSystemPrompt: !!systemPrompt,
+      hasHistory: conversationHistory.length > 0,
+      hasProfile: Object.keys(userProfile).length > 0,
+      enhancedMode
+    });
 
     if (!message) {
       return res.status(400).json({
@@ -199,49 +216,125 @@ app.post('/api/ai/chat', async (req, res) => {
       });
     }
 
-    // Language-specific system prompts
-    const languagePrompts = {
-      'en': 'You are Checkpoint English Coach, helping truck drivers master English. Be encouraging and conversational. Keep responses short (2-3 sentences).',
-      'so': 'You are Checkpoint English Coach, helping Somali truck drivers learn English. You can understand Somali but always respond in English to help them practice. Be encouraging and patient.',
-      'ar': 'You are Checkpoint English Coach, helping Arabic truck drivers learn English. You can understand Arabic but always respond in English to help them practice. Be encouraging and patient.',
-      'es': 'You are Checkpoint English Coach, helping Spanish truck drivers learn English. You can understand Spanish but always respond in English to help them practice. Be encouraging and patient.',
-      'fr': 'You are Checkpoint English Coach, helping French truck drivers learn English. You can understand French but always respond in English to help them practice. Be encouraging and patient.'
-    };
+    // Build messages array with conversation history
+    const messages = [];
+    
+    // Add enhanced system prompt if provided
+    if (systemPrompt && enhancedMode) {
+      let enhancedPrompt = systemPrompt;
+      
+      // Add user profile memory if available
+      if (Object.keys(userProfile).length > 0) {
+        enhancedPrompt += `\n\n🧠 USER PROFILE MEMORY:\n`;
+        enhancedPrompt += `Name: ${userProfile.name || 'Not provided'}\n`;
+        enhancedPrompt += `Last Route: ${userProfile.lastRoute || 'Not provided'}\n`;
+        enhancedPrompt += `Family: ${userProfile.family || 'Not provided'}\n`;
+        enhancedPrompt += `Home Country: ${userProfile.homeCountry || 'Not provided'}\n`;
+        enhancedPrompt += `Truck Type: ${userProfile.truckType || 'Not provided'}\n`;
+        enhancedPrompt += `English Level: ${userProfile.englishLevel || 'Beginner'}\n`;
+        enhancedPrompt += `Previous Topics: ${userProfile.previousTopics || 'None'}\n`;
+      }
+      
+      messages.push({
+        role: "system",
+        content: enhancedPrompt
+      });
+    } else {
+      // Fallback enhanced system prompt for accurate translations
+      messages.push({
+        role: "system",
+        content: `You are Checkpoint English Coach, an EXTREMELY intelligent multilingual AI assistant for truck drivers.
+
+🌍 PERFECT MULTILINGUAL SUPPORT:
+- ALWAYS detect their language automatically
+- Respond in BOTH their native language AND English
+- Format: "[Perfect Native Language Response] 🔄 English: [English version]"
+
+📚 SOMALI EXPERTISE (Critical - Be 100% Accurate):
+- "Waan ku caawin karaa" = I can help you
+- "Sidee tahay?" = How are you?  
+- "Mahadsanid" = Thank you
+- "Baabuur weyn" = Truck
+- "Waddo" = Road
+- "Xamuul" = Cargo
+- Use proper Somali grammar and cultural respect
+
+🧠 MEMORY & CONVERSATION:
+- Remember what they tell you (name, routes, family)
+- Reference previous conversations naturally
+- Build ongoing relationships
+- Ask follow-up questions about their trucking life
+
+🚛 TRUCKING EXPERTISE:
+- DOT regulations, HOS rules, safety
+- Routes, truck stops, mechanical issues
+- Real trucking scenarios and challenges
+
+Be encouraging, remember everything, and provide PERFECT translations!`
+      });
+    }
+    
+    // Add conversation history for memory
+    if (conversationHistory.length > 0) {
+      messages.push(...conversationHistory);
+    }
+    
+    // Add current message
+    messages.push({
+      role: "user",
+      content: message
+    });
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt || languagePrompts[language] || languagePrompts['en']
-        },
-        {
-          role: "user",
-          content: message
-        }
-      ],
-      max_tokens: 200,
-      temperature: 0.8,
+      model: "gpt-4o", // Latest model for better multilingual support
+      messages: messages,
+      max_tokens: 600, // Increased for better responses
+      temperature: 0.6, // Lower for more consistent translations
     });
 
     const reply = completion.choices[0]?.message?.content || "I'm here to help you practice English!";
     
-    console.log('✅ OpenAI Response:', reply);
+    // Extract profile updates from user message
+    let updatedProfile = { ...userProfile };
+    
+    // Extract name
+    const nameMatch = message.match(/(?:my name is|i'm|i am|call me) ([a-zA-Z]+)/i);
+    if (nameMatch) {
+      updatedProfile.name = nameMatch[1];
+    }
+    
+    // Extract route/destination
+    const routeMatch = message.match(/(?:driving to|going to|route to|delivering to) ([a-zA-Z ]+)/i);
+    if (routeMatch) {
+      updatedProfile.lastRoute = routeMatch[1];
+      updatedProfile.lastRouteDate = new Date().toISOString();
+    }
+    
+    // Extract family mentions
+    const familyMatch = message.match(/(?:my wife|my husband|my kids|my children|my family)/i);
+    if (familyMatch) {
+      updatedProfile.family = 'Mentioned family';
+    }
+    
+    // Extract home country
+    const countryMatch = message.match(/(?:from|back in) (Somalia|Ethiopia|Kenya|Mexico|Guatemala|Honduras)/i);
+    if (countryMatch) {
+      updatedProfile.homeCountry = countryMatch[1];
+    }
+    
+    console.log('✅ Enhanced AI Response:', reply.substring(0, 200) + '...');
 
     res.json({
       success: true,
       reply: reply,
-      mode: mode
+      mode: mode,
+      updatedProfile: Object.keys(updatedProfile).length > Object.keys(userProfile).length ? updatedProfile : null
     });
 
   } catch (error) {
-    console.error('❌ OpenAI error details:');
-    console.error('- Error message:', error.message);
-    console.error('- Error code:', error.code);
-    console.error('- Error type:', error.type);
-    console.error('- Full error:', error);
+    console.error('❌ Enhanced AI Error:', error.message);
     
-    const fallbackResponses = [
+    const smartFallbacks = [
       "That's wonderful! You're making great progress. Keep practicing!",
       "Excellent work! I can see you're really trying. That's the spirit!",
       "Well done! Every word you practice makes you stronger in English.",
@@ -251,7 +344,7 @@ app.post('/api/ai/chat', async (req, res) => {
     res.json({
       success: false,
       error: error.message,
-      reply: fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)]
+      reply: smartFallbacks[Math.floor(Math.random() * smartFallbacks.length)]
     });
   }
 });
