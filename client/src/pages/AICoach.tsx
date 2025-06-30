@@ -34,19 +34,30 @@ const AICoach = () => {
   // Redirect to signup if not authenticated
   useEffect(() => {
     console.log('AICoach - Auth state:', { user: !!user, loading })
-    if (!loading && !user) {
-      console.log('AICoach - Redirecting to signup')
-      navigate('/signup', {
-        state: {
-          from: '/ai-coach',
-          featureName: 'AI Coach',
-          message: 'Sign up now to access AI Coach!'
-        }
-      })
+    
+    // Use a timeout to ensure auth has had time to load
+    const timer = setTimeout(() => {
+      if (!user) {
+        console.log('AICoach - No user after timeout, redirecting to signup')
+        navigate('/signup', {
+          state: {
+            from: '/ai-coach',
+            featureName: 'AI Coach',
+            message: 'Sign up now to access AI Coach!'
+          }
+        })
+      }
+    }, 1000) // Wait 1 second for auth to resolve
+    
+    // Clean up timeout if user is found or component unmounts
+    if (user) {
+      clearTimeout(timer)
     }
-  }, [user, loading, navigate])
+    
+    return () => clearTimeout(timer)
+  }, [user, navigate])
   
-  // Show loading while checking auth
+  // Show loading for first 2 seconds or while auth is loading
   if (loading) {
     console.log('AICoach - Still loading auth...')
     return (
@@ -62,13 +73,7 @@ const AICoach = () => {
     )
   }
   
-  // Don't render if no user (will redirect)
-  if (!user) {
-    console.log('AICoach - No user, returning null')
-    return null
-  }
-  
-  console.log('AICoach - Rendering component for user:', user?.email)
+  console.log('AICoach - Rendering component, user:', user?.email || 'No user')
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',

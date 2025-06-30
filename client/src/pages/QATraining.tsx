@@ -13,19 +13,30 @@ const QATraining = () => {
   // Redirect to signup if not authenticated
   useEffect(() => {
     console.log('QATraining - Auth state:', { user: !!user, loading })
-    if (!loading && !user) {
-      console.log('QATraining - Redirecting to signup')
-      navigate('/signup', {
-        state: {
-          from: '/qa-training',
-          featureName: 'DOT Practice Training',
-          message: 'Sign up now to access DOT Practice Training!'
-        }
-      })
+    
+    // Use a timeout to ensure auth has had time to load
+    const timer = setTimeout(() => {
+      if (!user) {
+        console.log('QATraining - No user after timeout, redirecting to signup')
+        navigate('/signup', {
+          state: {
+            from: '/qa-training',
+            featureName: 'DOT Practice Training',
+            message: 'Sign up now to access DOT Practice Training!'
+          }
+        })
+      }
+    }, 1000) // Wait 1 second for auth to resolve
+    
+    // Clean up timeout if user is found or component unmounts
+    if (user) {
+      clearTimeout(timer)
     }
-  }, [user, loading, navigate])
+    
+    return () => clearTimeout(timer)
+  }, [user, navigate])
   
-  // Show loading while checking auth
+  // Show loading for first 2 seconds or while auth is loading
   if (loading) {
     console.log('QATraining - Still loading auth...')
     return (
@@ -41,13 +52,7 @@ const QATraining = () => {
     )
   }
   
-  // Don't render if no user (will redirect)
-  if (!user) {
-    console.log('QATraining - No user, returning null')
-    return null
-  }
-  
-  console.log('QATraining - Rendering component for user:', user.email)
+  console.log('QATraining - Rendering component, user:', user?.email || 'No user')
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playingType, setPlayingType] = useState<'officer' | 'driver' | null>(null)
