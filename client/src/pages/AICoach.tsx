@@ -33,7 +33,9 @@ const AICoach = () => {
   
   // Redirect to signup if not authenticated
   useEffect(() => {
+    console.log('AICoach - Auth state:', { user: !!user, loading })
     if (!loading && !user) {
+      console.log('AICoach - Redirecting to signup')
       navigate('/signup', {
         state: {
           from: '/ai-coach',
@@ -46,6 +48,7 @@ const AICoach = () => {
   
   // Show loading while checking auth
   if (loading) {
+    console.log('AICoach - Still loading auth...')
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
@@ -61,8 +64,11 @@ const AICoach = () => {
   
   // Don't render if no user (will redirect)
   if (!user) {
+    console.log('AICoach - No user, returning null')
     return null
   }
+  
+  console.log('AICoach - Rendering component for user:', user?.email)
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',

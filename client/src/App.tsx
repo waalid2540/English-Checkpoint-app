@@ -56,7 +56,12 @@ function App() {
             </div>
           } />
           
-          <Route path="/ai-coach" element={<AICoach />} />
+          <Route path="/ai-coach" element={
+            <div className="min-h-screen bg-gray-50">
+              <Navbar />
+              <AICoach />
+            </div>
+          } />
           
           <Route path="/settings" element={
             <ProtectedRoute>

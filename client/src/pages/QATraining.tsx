@@ -12,7 +12,9 @@ const QATraining = () => {
   
   // Redirect to signup if not authenticated
   useEffect(() => {
+    console.log('QATraining - Auth state:', { user: !!user, loading })
     if (!loading && !user) {
+      console.log('QATraining - Redirecting to signup')
       navigate('/signup', {
         state: {
           from: '/qa-training',
@@ -25,6 +27,7 @@ const QATraining = () => {
   
   // Show loading while checking auth
   if (loading) {
+    console.log('QATraining - Still loading auth...')
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
@@ -40,8 +43,11 @@ const QATraining = () => {
   
   // Don't render if no user (will redirect)
   if (!user) {
+    console.log('QATraining - No user, returning null')
     return null
   }
+  
+  console.log('QATraining - Rendering component for user:', user.email)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playingType, setPlayingType] = useState<'officer' | 'driver' | null>(null)
