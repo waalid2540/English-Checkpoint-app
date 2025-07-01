@@ -599,7 +599,7 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
         metadata: {
           user_id: userId || 'anonymous',
         },
-        trial_period_days: 7, // 7-day free trial
+        // No trial - immediate payment
       },
       allow_promotion_codes: true,
     });

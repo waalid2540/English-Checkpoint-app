@@ -157,8 +157,8 @@ const UpgradePopup: React.FC<UpgradePopupProps> = ({
           {/* Pricing */}
           <div className="text-center mb-4">
             <div className="text-3xl font-bold text-gray-800 mb-1">$9.99<span className="text-base text-gray-500">/month</span></div>
-            <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 rounded-full text-xs font-semibold inline-block">
-              🎁 7-Day FREE Trial
+            <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-semibold inline-block">
+              🚀 Instant Access
             </div>
           </div>
 
@@ -172,10 +172,10 @@ const UpgradePopup: React.FC<UpgradePopupProps> = ({
               {loading ? (
                 <div className="flex items-center justify-center space-x-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Starting Trial...</span>
+                  <span>Processing Payment...</span>
                 </div>
               ) : (
-                '🚀 Start 7-Day FREE Trial'
+                '💳 Upgrade Now - $9.99/month'
               )}
             </button>
             <button
@@ -188,7 +188,7 @@ const UpgradePopup: React.FC<UpgradePopupProps> = ({
 
           {/* Fine print */}
           <p className="text-xs text-gray-400 text-center mt-3">
-            Cancel anytime during trial. No commitment required.
+            Cancel anytime. Immediate access to all features.
           </p>
         </div>
       </div>
