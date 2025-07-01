@@ -52,76 +52,26 @@ app.get('/api/stripe/config', (req, res) => {
   });
 });
 
-// Create Stripe checkout session for trial
-app.post('/api/stripe/create-checkout-session', async (req, res) => {
-  try {
-    const { priceId, successUrl, cancelUrl } = req.body;
-    const authToken = req.headers.authorization?.replace('Bearer ', '');
-    
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-    
-    // Get user info to link with Stripe customer
-    let userEmail = null;
-    let userId = null;
-    
-    if (authToken) {
-      const { data: { user }, error: authError } = await supabase.auth.getUser(authToken);
-      if (!authError && user) {
-        userEmail = user.email;
-        userId = user.id;
-      }
-    }
-    
-    const sessionData = {
-      mode: 'subscription',
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: process.env.STRIPE_PRICE_ID,
-          quantity: 1,
-        },
-      ],
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      subscription_data: {
-        trial_period_days: 7,
-        metadata: {
-          user_id: userId || 'anonymous'
-        }
-      },
-    };
-    
-    // Add customer email if available
-    if (userEmail) {
-      sessionData.customer_email = userEmail;
-    }
-    
-    const session = await stripe.checkout.sessions.create(sessionData);
-
-    console.log('✅ Stripe checkout session created for user:', userId || 'anonymous');
-    res.json({ url: session.url });
-  } catch (error) {
-    console.error('❌ Stripe checkout error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // Check user subscription status
 app.get('/api/subscription/status', async (req, res) => {
   try {
+    console.log('🔍 Checking subscription status...');
     const authToken = req.headers.authorization?.replace('Bearer ', '');
     
     if (!authToken) {
+      console.log('⚠️ No auth token provided');
       return res.json({
         isPremium: false,
         trialDaysLeft: 0,
         dailyUsage: 0,
-        dailyLimit: 3,
+        dailyLimit: 5, // Increased free limit
         subscriptionId: null
       });
     }
 
     // Verify the JWT token and get user info
+    console.log('🔐 Verifying auth token...');
     const { data: { user }, error: authError } = await supabase.auth.getUser(authToken);
     
     if (authError || !user) {
@@ -130,22 +80,30 @@ app.get('/api/subscription/status', async (req, res) => {
         isPremium: false,
         trialDaysLeft: 0,
         dailyUsage: 0,
-        dailyLimit: 3,
+        dailyLimit: 5,
         subscriptionId: null
       });
     }
 
+    console.log('✅ User authenticated:', user.email);
+
     // Check user's subscription status
+    console.log('📊 Checking subscription in database...');
     const { data: subscription, error: subError } = await supabase
       .from('user_subscriptions')
       .select('*')
       .eq('user_id', user.id)
       .single();
 
-    if (subError && subError.code !== 'PGRST116') {
-      console.error('❌ Subscription query error:', subError);
-      return res.status(500).json({ error: 'Database error' });
+    if (subError) {
+      console.log('📊 Subscription query result:', subError.code, subError.message);
+      if (subError.code !== 'PGRST116') { // PGRST116 = no rows found
+        console.error('❌ Subscription query error:', subError);
+        // Don't return 500, just treat as no subscription
+      }
     }
+
+    console.log('📊 Subscription data:', subscription ? 'Found subscription' : 'No subscription');
 
     // Calculate subscription status
     let isPremium = false;
@@ -157,6 +115,7 @@ app.get('/api/subscription/status', async (req, res) => {
       // Check if subscription is active
       if (subscription.status === 'active' || subscription.status === 'trialing') {
         isPremium = true;
+        console.log('✅ User has premium subscription');
       }
       
       // Calculate trial days left
@@ -164,24 +123,40 @@ app.get('/api/subscription/status', async (req, res) => {
         const trialEnd = new Date(subscription.trial_end);
         const daysLeft = Math.max(0, Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24)));
         trialDaysLeft = daysLeft;
+        console.log('📅 Trial days left:', daysLeft);
       }
+    } else {
+      console.log('📊 No subscription found - user gets freemium access');
     }
 
     // Get daily usage (mock for now - you can implement actual tracking)
     const dailyUsage = 0; // TODO: Implement actual usage tracking
-    const dailyLimit = isPremium ? 1000 : 3; // Premium users get unlimited (high limit)
+    const dailyLimit = isPremium ? 1000 : 5; // Premium users get unlimited, free users get 5
 
-    res.json({
+    const result = {
       isPremium,
       trialDaysLeft,
       dailyUsage,
       dailyLimit,
       subscriptionId: subscription?.stripe_subscription_id || null
-    });
+    };
+
+    console.log('✅ Subscription status result:', result);
+    res.json(result);
     
   } catch (error) {
     console.error('❌ Subscription status error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('❌ Error stack:', error.stack);
+    
+    // Return a safe default instead of 500 error
+    res.json({
+      isPremium: false,
+      trialDaysLeft: 0,
+      dailyUsage: 0,
+      dailyLimit: 5,
+      subscriptionId: null,
+      error: 'Unable to check subscription status'
+    });
   }
 });
 
@@ -559,7 +534,7 @@ const supabase = createClient(
 // Initialize Stripe
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-// Stripe checkout session creation
+// Stripe checkout session creation endpoint
 app.post('/api/stripe/create-checkout-session', async (req, res) => {
   try {
     console.log('💳 Creating Stripe checkout session...');
