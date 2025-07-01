@@ -383,12 +383,12 @@ app.post('/api/ai/translate', async (req, res) => {
   }
 });
 
-// Google Text-to-Speech endpoint
+// OpenAI Text-to-Speech endpoint (replacing gTTS)
 app.post('/api/ai/text-to-speech', async (req, res) => {
   try {
-    const { text, language = 'en', voice = 'female' } = req.body;
+    const { text, language = 'en', voice = 'alloy' } = req.body;
     
-    console.log('🔊 gTTS request:', { text: text?.substring(0, 50) + '...', language, voice });
+    console.log('🔊 OpenAI TTS request:', { text: text?.substring(0, 50) + '...', language, voice });
 
     if (!text) {
       return res.status(400).json({
@@ -397,53 +397,47 @@ app.post('/api/ai/text-to-speech', async (req, res) => {
       });
     }
 
-    // Create temp directory if it doesn't exist
-    const tempDir = path.join(__dirname, 'temp');
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
+    // Map voice preferences to OpenAI voices
+    const voiceMap = {
+      'en': 'alloy',     // Natural, balanced voice
+      'female': 'nova',   // Female voice
+      'male': 'onyx',     // Male voice
+      'alloy': 'alloy',
+      'echo': 'echo',
+      'fable': 'fable',
+      'nova': 'nova',
+      'onyx': 'onyx',
+      'shimmer': 'shimmer'
+    };
 
-    const audioFileName = `tts_${Date.now()}.mp3`;
-    const audioPath = path.join(tempDir, audioFileName);
-    
-    // Create gTTS instance
-    const gTTS = new gtts(text, language);
+    const selectedVoice = voiceMap[voice] || 'alloy';
+    console.log('🎤 Using OpenAI voice:', selectedVoice);
 
-    // Generate audio file
-    await new Promise((resolve, reject) => {
-      gTTS.save(audioPath, (err) => {
-        if (err) {
-          console.error('❌ gTTS generation error:', err);
-          reject(err);
-        } else {
-          console.log('✅ gTTS audio file generated');
-          resolve();
-        }
-      });
+    // Generate speech with OpenAI TTS
+    const mp3 = await openai.audio.speech.create({
+      model: "tts-1", // High quality, fast
+      voice: selectedVoice,
+      input: text,
+      response_format: "mp3",
+      speed: 1.0
     });
 
-    // Read and send the audio file
-    const audioBuffer = fs.readFileSync(audioPath);
+    console.log('✅ OpenAI TTS audio generated');
+
+    // Convert to buffer
+    const buffer = Buffer.from(await mp3.arrayBuffer());
     
     res.set({
       'Content-Type': 'audio/mpeg',
-      'Content-Length': audioBuffer.length,
+      'Content-Length': buffer.length,
       'Cache-Control': 'public, max-age=3600'
     });
     
-    res.send(audioBuffer);
-    console.log('✅ gTTS audio sent, size:', audioBuffer.length);
-
-    // Clean up temp file after 5 seconds
-    setTimeout(() => {
-      if (fs.existsSync(audioPath)) {
-        fs.unlinkSync(audioPath);
-        console.log('🗑️ Cleaned up temp file');
-      }
-    }, 5000);
+    res.send(buffer);
+    console.log('✅ OpenAI TTS audio sent, size:', buffer.length);
 
   } catch (error) {
-    console.error('❌ gTTS error:', error);
+    console.error('❌ OpenAI TTS error:', error);
     res.status(500).json({
       success: false,
       error: error.message

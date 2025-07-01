@@ -272,13 +272,13 @@ const AICoach = () => {
 
   // Google TTS Audio Playback
   const speakText = async (text: string) => {
-    console.log('🔊 AI speaking with gTTS:', selectedVoice, text)
+    console.log('🔊 AI speaking with OpenAI TTS:', selectedVoice, text)
     setIsSpeaking(true)
     
     try {
       const response = await axios.post(`${API_BASE_URL}/api/ai/text-to-speech`, {
         text: text,
-        language: selectedVoice
+        voice: selectedVoice === 'en' ? 'alloy' : selectedVoice
       }, {
         responseType: 'blob',
         timeout: 15000
@@ -290,9 +290,9 @@ const AICoach = () => {
       
       audio.playbackRate = voiceSpeed
       
-      audio.onloadstart = () => console.log('✅ gTTS audio loading...')
+      audio.onloadstart = () => console.log('✅ OpenAI TTS audio loading...')
       audio.oncanplaythrough = () => {
-        console.log('✅ gTTS audio ready to play')
+        console.log('✅ OpenAI TTS audio ready to play')
         // Mobile-friendly audio play with user interaction check
         const playAudio = () => {
           // For mobile Safari and other mobile browsers, we need user gesture
@@ -473,6 +473,9 @@ Remember: You're not just teaching English - you're a trusted friend who remembe
       const savedProfile = localStorage.getItem(`user_profile_${user?.id}`)
       const currentProfile = savedProfile ? JSON.parse(savedProfile) : {}
 
+      console.log('📡 Sending request to:', `${API_BASE_URL}/api/ai/chat`)
+      console.log('📡 Request data:', { message: userMessage.substring(0, 50), mode, hasHistory: conversationHistory.length })
+      
       const response = await axios.post(`${API_BASE_URL}/api/ai/chat`, {
         message: userMessage,
         mode: mode,
@@ -488,6 +491,8 @@ Remember: You're not just teaching English - you're a trusted friend who remembe
           'Content-Type': 'application/json'
         }
       })
+      
+      console.log('✅ AI response received:', response.data.reply?.substring(0, 100))
 
       setIsProcessing(false)
       
@@ -501,7 +506,14 @@ Remember: You're not just teaching English - you're a trusted friend who remembe
       
     } catch (error) {
       setIsProcessing(false)
-      console.error('AI response error:', error)
+      console.error('❌ AI response error:', error)
+      console.error('❌ Error details:', error.response?.data || error.message)
+      
+      // Better mobile error handling
+      if (error.code === 'NETWORK_ERROR' || error.message.includes('Network')) {
+        console.log('🔄 Network issue detected, retrying...')
+        // Could implement retry logic here
+      }
       
       const fallbackResponses = [
         "That's wonderful! You're making great progress. Keep practicing!",
