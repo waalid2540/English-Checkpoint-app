@@ -270,9 +270,16 @@ const AICoach = () => {
     }
   }
 
-  // Google TTS Audio Playback
+  // OpenAI TTS Audio Playback with Mobile Fix
   const speakText = async (text: string) => {
     console.log('🔊 AI speaking with OpenAI TTS:', selectedVoice, text)
+    
+    // Stop any currently playing audio
+    if (isSpeaking) {
+      console.log('🛑 Stopping previous audio')
+      setIsSpeaking(false)
+    }
+    
     setIsSpeaking(true)
     
     try {
@@ -288,105 +295,158 @@ const AICoach = () => {
       const audioUrl = URL.createObjectURL(audioBlob)
       const audio = new Audio(audioUrl)
       
+      // Mobile-friendly audio settings
+      audio.preload = 'auto'
       audio.playbackRate = voiceSpeed
       
       audio.onloadstart = () => console.log('✅ OpenAI TTS audio loading...')
       audio.oncanplaythrough = () => {
         console.log('✅ OpenAI TTS audio ready to play')
-        // Mobile-friendly audio play with user interaction check
-        const playAudio = () => {
-          // For mobile Safari and other mobile browsers, we need user gesture
-          const playPromise = audio.play()
-          
-          if (playPromise !== undefined) {
-            playPromise.catch(e => {
-              console.error('❌ Play error:', e)
-              // Always show fallback button on mobile/autoplay restriction
-              const playButton = document.createElement('button')
-              playButton.textContent = '🔊 Tap to hear AI response'
-              playButton.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                z-index: 10000;
-                background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-                color: white;
-                padding: 16px 24px;
-                border: none;
-                border-radius: 12px;
-                font-size: 18px;
-                font-weight: bold;
-                box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
-                cursor: pointer;
-                animation: pulse 2s infinite;
-              `
-              
-              // Add CSS animation
-              const style = document.createElement('style')
+        // Enhanced mobile audio play with better fallback
+        const playAudio = async () => {
+          try {
+            // For mobile, try direct play first
+            await audio.play()
+            console.log('✅ Audio playing directly')
+          } catch (e) {
+            console.error('❌ Direct play failed:', e)
+            
+            // Create persistent fallback button for mobile
+            const existingButton = document.getElementById('audio-fallback-button')
+            if (existingButton) {
+              existingButton.remove()
+            }
+            
+            const playButton = document.createElement('button')
+            playButton.id = 'audio-fallback-button'
+            playButton.textContent = '🔊 Tap to hear AI response'
+            playButton.style.cssText = `
+              position: fixed;
+              bottom: 20px;
+              right: 20px;
+              z-index: 10000;
+              background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+              color: white;
+              padding: 12px 20px;
+              border: none;
+              border-radius: 25px;
+              font-size: 16px;
+              font-weight: bold;
+              box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+              cursor: pointer;
+              animation: bounce 1s infinite;
+            `
+            
+            // Add CSS animation
+            let style = document.getElementById('audio-animation-style')
+            if (!style) {
+              style = document.createElement('style')
+              style.id = 'audio-animation-style'
               style.textContent = `
-                @keyframes pulse {
-                  0% { transform: translate(-50%, -50%) scale(1); }
-                  50% { transform: translate(-50%, -50%) scale(1.05); }
-                  100% { transform: translate(-50%, -50%) scale(1); }
+                @keyframes bounce {
+                  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                  40% { transform: translateY(-10px); }
+                  60% { transform: translateY(-5px); }
                 }
               `
               document.head.appendChild(style)
-              
-              playButton.onclick = () => {
-                audio.play().then(() => {
-                  document.body.removeChild(playButton)
-                  document.head.removeChild(style)
-                }).catch(console.error)
+            }
+            
+            playButton.onclick = async () => {
+              try {
+                await audio.play()
+                playButton.remove()
+                console.log('✅ Audio playing via fallback button')
+              } catch (err) {
+                console.error('❌ Fallback play failed:', err)
+                playButton.textContent = '❌ Audio unavailable'
+                setTimeout(() => playButton.remove(), 2000)
               }
-              
-              document.body.appendChild(playButton)
-              
-              // Auto-remove after 8 seconds
-              setTimeout(() => {
-                if (document.body.contains(playButton)) {
-                  document.body.removeChild(playButton)
-                  document.head.removeChild(style)
-                }
-              }, 8000)
-            })
+            }
+            
+            document.body.appendChild(playButton)
+            
+            // Auto-remove after 10 seconds
+            setTimeout(() => {
+              if (document.getElementById('audio-fallback-button')) {
+                playButton.remove()
+              }
+            }, 10000)
           }
         }
+        
         playAudio()
       }
-      audio.onplay = () => console.log('✅ gTTS started playing')
-      audio.onended = () => {
-        console.log('✅ gTTS finished playing')
-        setIsSpeaking(false)
-        URL.revokeObjectURL(audioUrl)
-      }
-      audio.onerror = (e) => {
-        console.error('❌ gTTS playback error:', e)
-        setIsSpeaking(false)
-        URL.revokeObjectURL(audioUrl)
+      audio.onplay = () => {
+        console.log('✅ OpenAI TTS started playing')
+        // Remove any fallback buttons when audio starts playing
+        const fallbackButton = document.getElementById('audio-fallback-button')
+        if (fallbackButton) {
+          fallbackButton.remove()
+        }
       }
       
-      // Fallback timeout
+      audio.onended = () => {
+        console.log('✅ OpenAI TTS finished playing')
+        setIsSpeaking(false)
+        URL.revokeObjectURL(audioUrl)
+        // Clean up any remaining fallback buttons
+        const fallbackButton = document.getElementById('audio-fallback-button')
+        if (fallbackButton) {
+          fallbackButton.remove()
+        }
+      }
+      
+      audio.onerror = (e) => {
+        console.error('❌ OpenAI TTS playback error:', e)
+        setIsSpeaking(false)
+        URL.revokeObjectURL(audioUrl)
+        // Clean up any fallback buttons on error
+        const fallbackButton = document.getElementById('audio-fallback-button')
+        if (fallbackButton) {
+          fallbackButton.remove()
+        }
+      }
+      
+      // Fallback timeout with cleanup
       setTimeout(() => {
         if (isSpeaking) {
-          console.log('🔊 gTTS timeout, stopping')
+          console.log('🔊 OpenAI TTS timeout, stopping')
           setIsSpeaking(false)
           audio.pause()
           URL.revokeObjectURL(audioUrl)
+          const fallbackButton = document.getElementById('audio-fallback-button')
+          if (fallbackButton) {
+            fallbackButton.remove()
+          }
         }
       }, 30000)
       
     } catch (error) {
-      console.error('❌ gTTS error:', error)
+      console.error('❌ OpenAI TTS error:', error)
       setIsSpeaking(false)
       
-      // Fallback to browser TTS if gTTS fails
+      // Clean up any fallback buttons on error
+      const fallbackButton = document.getElementById('audio-fallback-button')
+      if (fallbackButton) {
+        fallbackButton.remove()
+      }
+      
+      // Fallback to browser TTS if OpenAI TTS fails
       if ('speechSynthesis' in window) {
         console.log('🔄 Falling back to browser TTS')
         const utterance = new SpeechSynthesisUtterance(text)
         utterance.rate = voiceSpeed
-        utterance.lang = selectedVoice
-        utterance.onend = () => setIsSpeaking(false)
+        utterance.lang = selectedVoice === 'en' ? 'en-US' : selectedVoice
+        utterance.onstart = () => console.log('✅ Browser TTS started')
+        utterance.onend = () => {
+          console.log('✅ Browser TTS ended')
+          setIsSpeaking(false)
+        }
+        utterance.onerror = () => {
+          console.error('❌ Browser TTS error')
+          setIsSpeaking(false)
+        }
         speechSynthesis.speak(utterance)
       }
     }
