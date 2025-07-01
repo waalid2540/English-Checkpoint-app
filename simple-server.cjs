@@ -539,10 +539,12 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
   try {
     console.log('💳 Creating Stripe checkout session...');
     console.log('Request body:', req.body);
+    console.log('Headers:', req.headers);
     
     const { priceId, successUrl, cancelUrl } = req.body;
     
     if (!priceId) {
+      console.error('❌ No priceId provided in request');
       return res.status(400).json({ 
         error: 'Price ID is required' 
       });
@@ -603,6 +605,7 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
     });
 
     console.log('✅ Checkout session created:', session.id);
+    console.log('✅ Checkout URL:', session.url);
     
     res.json({
       url: session.url,
@@ -610,10 +613,13 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Stripe checkout error:', error);
+    console.error('❌ Stripe checkout error:', error.message);
+    console.error('❌ Full error:', error);
+    console.error('❌ Stack trace:', error.stack);
     res.status(500).json({ 
       error: error.message,
-      details: 'Failed to create checkout session'
+      details: 'Failed to create checkout session',
+      type: error.type || 'unknown'
     });
   }
 });

@@ -36,6 +36,7 @@ const UpgradePopup: React.FC<UpgradePopupProps> = ({
       
       console.log('📡 Making Stripe request to:', `${API_BASE_URL}/api/stripe/create-checkout-session`)
       console.log('📡 Request data:', requestData)
+      console.log('📡 Auth token:', session?.access_token ? 'Present' : 'Missing')
       
       const response = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
         method: 'POST',
@@ -47,19 +48,31 @@ const UpgradePopup: React.FC<UpgradePopupProps> = ({
       })
       
       console.log('📡 Response status:', response.status)
+      console.log('📡 Response headers:', response.headers)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ HTTP Error:', response.status, errorText)
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+      
       const data = await response.json()
       console.log('📡 Response data:', data)
       
       if (data.url) {
         console.log('✅ Redirecting to Stripe:', data.url)
-        window.location.href = data.url
+        // Use window.open as fallback if direct redirect fails
+        const opened = window.open(data.url, '_blank')
+        if (!opened) {
+          window.location.href = data.url
+        }
       } else {
         console.error('❌ No URL in response:', data)
         alert(`Error: ${data.error || 'No checkout URL received'}`)
       }
     } catch (err) {
       console.error('❌ Stripe error:', err)
-      alert(`Error starting checkout: ${err.message}`)
+      alert(`Error starting checkout: ${err.message || err}`)
     } finally {
       setLoading(false)
     }
