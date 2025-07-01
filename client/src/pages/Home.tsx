@@ -1,12 +1,42 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import FeatureAccess from '../components/FeatureAccess'
 
 const Home = () => {
   const { user } = useAuth()
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
+
+  useEffect(() => {
+    // Check for success parameter in URL
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('success') === 'true') {
+      setShowSuccessMessage(true)
+      console.log('🎉 Payment successful! User should have premium access now')
+      
+      // Clear the URL parameter
+      window.history.replaceState({}, document.title, window.location.pathname)
+      
+      // Hide success message after 5 seconds
+      setTimeout(() => setShowSuccessMessage(false), 5000)
+    }
+  }, [])
+
   return (
     <div className="animate-fade-in">
+      {/* Success Message */}
+      {showSuccessMessage && (
+        <div className="fixed top-4 right-4 bg-green-500 text-white p-6 rounded-xl shadow-lg z-50 max-w-sm">
+          <div className="flex items-center space-x-3">
+            <span className="text-2xl">🎉</span>
+            <div>
+              <h3 className="font-bold">Payment Successful!</h3>
+              <p className="text-sm">You now have unlimited access to all features!</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Hero Section */}
       <section className="hero-section text-white py-20 px-6 rounded-3xl mb-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-black/20"></div>
