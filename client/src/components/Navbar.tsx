@@ -10,8 +10,23 @@ const Navbar = () => {
   const isActive = (path: string) => location.pathname === path
 
   const handleSignOut = async () => {
-    await signOut()
-    setShowUserMenu(false)
+    try {
+      console.log('🚪 Signing out...')
+      const { error } = await signOut()
+      if (error) {
+        console.error('❌ Sign out error:', error)
+        alert('Error signing out: ' + error.message)
+      } else {
+        console.log('✅ Successfully signed out')
+        // Force redirect to home page
+        window.location.href = '/'
+      }
+    } catch (err) {
+      console.error('❌ Sign out error:', err)
+      alert('Error signing out')
+    } finally {
+      setShowUserMenu(false)
+    }
   }
 
   return (
