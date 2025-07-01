@@ -565,18 +565,30 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
       }
     }
 
+    // Use the price ID from request or fallback to env
+    const finalPriceId = priceId || process.env.STRIPE_PRICE_ID;
+    
+    if (!finalPriceId) {
+      console.error('❌ No price ID provided');
+      return res.status(400).json({ 
+        error: 'Price ID not configured' 
+      });
+    }
+
+    console.log('💰 Using price ID:', finalPriceId);
+
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'subscription',
       line_items: [
         {
-          price: priceId,
+          price: finalPriceId,
           quantity: 1,
         },
       ],
-      success_url: successUrl,
-      cancel_url: cancelUrl,
+      success_url: successUrl || `${process.env.FRONTEND_URL || 'https://englishcheckpointapp.vercel.app'}?success=true`,
+      cancel_url: cancelUrl || `${process.env.FRONTEND_URL || 'https://englishcheckpointapp.vercel.app'}?canceled=true`,
       metadata: {
         user_id: userId || 'anonymous',
         source: 'english_checkpoint_app'
