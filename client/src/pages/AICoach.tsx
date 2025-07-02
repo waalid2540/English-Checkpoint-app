@@ -250,6 +250,7 @@ const AICoach = () => {
           setMessages(prev => [...prev, coachResponse])
           
           // AI speaks back in voice conversations
+          console.log('🎙️ AI will speak:', aiReply.substring(0, 30))
           speakText(aiReply)
         }
       }
@@ -279,140 +280,93 @@ const AICoach = () => {
     }
   }
 
-  // Fixed OpenAI TTS Implementation
+  // WORKING OpenAI TTS - Simple Implementation
   const speakText = async (text: string) => {
-    console.log('🔊 OpenAI TTS starting:', selectedVoice, text.substring(0, 50))
-    
-    // Stop any currently playing audio
-    if (isSpeaking) {
-      console.log('🛑 Stopping previous audio')
-      setIsSpeaking(false)
-      speechSynthesis.cancel()
-      // Stop any existing audio elements
-      const existingAudio = document.querySelectorAll('audio')
-      existingAudio.forEach(audio => {
-        audio.pause()
-        audio.currentTime = 0
-      })
-    }
+    console.log('🔊 TTS Request:', text.substring(0, 30))
     
     setIsSpeaking(true)
     
     try {
-      console.log('📡 Requesting OpenAI TTS from:', `${API_BASE_URL}/api/ai/text-to-speech`)
-      
-      const response = await axios.post(`${API_BASE_URL}/api/ai/text-to-speech`, {
-        text: text,
-        voice: selectedVoice
-      }, {
-        responseType: 'blob',
-        timeout: 15000
+      // Make request to your server
+      const response = await fetch(`${API_BASE_URL}/api/ai/text-to-speech`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          voice: selectedVoice
+        })
       })
       
-      console.log('✅ OpenAI TTS response received, size:', response.data.size)
+      if (!response.ok) {
+        throw new Error(`TTS failed: ${response.status}`)
+      }
       
-      // Create audio from blob
-      const audioBlob = new Blob([response.data], { type: 'audio/mpeg' })
-      const audioUrl = URL.createObjectURL(audioBlob)
+      // Get audio data
+      const audioData = await response.blob()
+      console.log('✅ Audio received, size:', audioData.size)
+      
+      // Create and play audio
+      const audioUrl = URL.createObjectURL(audioData)
       const audio = new Audio(audioUrl)
       
-      // Set audio properties
-      audio.preload = 'auto'
-      audio.playbackRate = voiceSpeed
-      audio.volume = 1.0
-      
-      // Create user interaction handler for mobile
-      const playAudio = async () => {
-        try {
-          console.log('🔊 Attempting to play OpenAI TTS audio...')
-          await audio.play()
-          console.log('✅ OpenAI TTS audio playing successfully')
-        } catch (playError) {
-          console.error('❌ Audio play failed:', playError)
-          
-          // Create a play button for user interaction
-          const playButton = document.createElement('button')
-          playButton.textContent = '🔊 Tap to Hear Response'
-          playButton.style.cssText = `
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10000;
-            background: #3b82f6;
-            color: white;
-            padding: 16px 24px;
-            border: none;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
-            animation: pulse 2s infinite;
-          `
-          
-          playButton.onclick = async () => {
-            try {
-              await audio.play()
-              playButton.remove()
-            } catch (e) {
-              console.error('❌ Manual play also failed:', e)
-              playButton.remove()
-              setIsSpeaking(false)
-            }
-          }
-          
-          document.body.appendChild(playButton)
-          
-          // Auto-remove button after 10 seconds
-          setTimeout(() => {
-            if (playButton.parentNode) {
-              playButton.remove()
-              setIsSpeaking(false)
-            }
-          }, 10000)
-        }
-      }
-      
-      // Event handlers
-      audio.onloadeddata = () => {
-        console.log('✅ OpenAI TTS audio loaded, attempting play')
-        playAudio()
-      }
-      
-      audio.onplay = () => {
-        console.log('✅ OpenAI TTS started playing')
+      audio.oncanplay = () => {
+        console.log('✅ Audio ready, playing...')
+        audio.play().catch(e => {
+          console.log('❌ Autoplay blocked, showing button')
+          showPlayButton(audio)
+        })
       }
       
       audio.onended = () => {
-        console.log('✅ OpenAI TTS finished playing')
+        console.log('✅ Audio finished')
         setIsSpeaking(false)
         URL.revokeObjectURL(audioUrl)
       }
       
-      audio.onerror = (e) => {
-        console.error('❌ OpenAI TTS audio error:', e)
+      audio.onerror = () => {
+        console.log('❌ Audio error')
         setIsSpeaking(false)
         URL.revokeObjectURL(audioUrl)
       }
-      
-      // Cleanup timeout
-      setTimeout(() => {
-        if (isSpeaking) {
-          console.log('⏱️ OpenAI TTS timeout, cleaning up')
-          setIsSpeaking(false)
-          audio.pause()
-          URL.revokeObjectURL(audioUrl)
-        }
-      }, 30000)
       
     } catch (error) {
-      console.error('❌ OpenAI TTS error:', error)
+      console.error('❌ TTS Error:', error)
       setIsSpeaking(false)
-      
-      // Show error message
-      alert('Voice response failed. Please check your internet connection.')
     }
+  }
+  
+  // Show play button for mobile
+  const showPlayButton = (audio: HTMLAudioElement) => {
+    const button = document.createElement('button')
+    button.innerHTML = '🔊 Tap to Hear'
+    button.style.cssText = `
+      position: fixed;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ef4444;
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 20px;
+      font-size: 16px;
+      font-weight: bold;
+      z-index: 9999;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    `
+    
+    button.onclick = () => {
+      audio.play()
+      button.remove()
+    }
+    
+    document.body.appendChild(button)
+    
+    setTimeout(() => {
+      if (button.parentNode) button.remove()
+    }, 8000)
   }
 
   const getAIResponse = async (userMessage: string, mode: string | null): Promise<string> => {
@@ -650,8 +604,15 @@ ${mode.description}
               </div>
             </div>
             
-            {/* Modern Voice Settings */}
+            {/* Voice Settings + Test Button */}
             <div className="flex items-center space-x-2">
+              <button
+                onClick={() => speakText('Hello! This is a voice test. Can you hear me?')}
+                className="text-xs bg-red-500 text-white px-3 py-1 rounded-lg font-bold hover:bg-red-600"
+              >
+                Test Voice
+              </button>
+              
               <select
                 value={selectedVoice}
                 onChange={(e) => setSelectedVoice(e.target.value)}
