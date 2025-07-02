@@ -173,8 +173,16 @@ const AICoach = () => {
     { code: 'shimmer', name: 'Shimmer (Soft Female)', flag: '✨' }
   ]
 
-  // Auto-start voice when component loads
+  // Load voices and auto-start
   useEffect(() => {
+    // Load browser voices
+    if ('speechSynthesis' in window) {
+      speechSynthesis.getVoices()
+      window.speechSynthesis.onvoiceschanged = () => {
+        speechSynthesis.getVoices()
+      }
+    }
+    
     if (hasReachedLimit) {
       setUpgradeTrigger('daily_limit')
       setShowUpgradePopup(true)
@@ -279,140 +287,109 @@ const AICoach = () => {
     }
   }
 
-  // Smart TTS with Mobile-First Approach
+  // Simple and Reliable TTS for Mobile & Desktop
   const speakText = async (text: string) => {
-    console.log('🔊 Smart TTS starting:', selectedVoice, text.substring(0, 50))
+    console.log('🔊 Starting TTS:', text.substring(0, 50))
     
     // Stop any currently playing audio
     if (isSpeaking) {
       console.log('🛑 Stopping previous audio')
       setIsSpeaking(false)
-      speechSynthesis.cancel() // Cancel browser TTS too
+      speechSynthesis.cancel()
     }
     
     setIsSpeaking(true)
     
-    // Use OpenAI TTS for all devices
+    // Try OpenAI TTS first (better quality)
     try {
-      console.log('📡 Requesting TTS from:', `${API_BASE_URL}/api/ai/text-to-speech`)
-      
+      console.log('📡 Trying OpenAI TTS...')
       const response = await axios.post(`${API_BASE_URL}/api/ai/text-to-speech`, {
         text: text,
-        voice: selectedVoice // Now using OpenAI voice names directly
+        voice: selectedVoice
       }, {
         responseType: 'blob',
-        timeout: 15000
+        timeout: 10000
       })
       
-      console.log('✅ OpenAI TTS response received, size:', response.data.size)
-      
+      console.log('✅ OpenAI TTS received')
       const audioBlob = new Blob([response.data], { type: 'audio/mpeg' })
       const audioUrl = URL.createObjectURL(audioBlob)
       const audio = new Audio(audioUrl)
       
-      // Mobile-friendly audio settings
-      audio.preload = 'auto'
       audio.playbackRate = voiceSpeed
       
-      audio.onloadstart = () => console.log('✅ OpenAI TTS audio loading...')
-      audio.oncanplaythrough = () => {
-        console.log('✅ OpenAI TTS audio ready to play')
-        // Force audio to play on mobile - no complex fallbacks
-        const playAudio = async () => {
-          try {
-            console.log('🔊 Attempting to play audio on mobile...')
-            await audio.play()
-            console.log('✅ Audio playing successfully')
-          } catch (e) {
-            console.error('❌ Audio play failed:', e)
-            // Show simple tap button
-            const playButton = document.createElement('button')
-            playButton.textContent = '🔊 Tap to hear'
-            playButton.style.cssText = `
-              position: fixed;
-              bottom: 80px;
-              right: 20px;
-              z-index: 10000;
-              background: #3b82f6;
-              color: white;
-              padding: 12px 16px;
-              border: none;
-              border-radius: 20px;
-              font-size: 14px;
-              font-weight: bold;
-              cursor: pointer;
-            `
-            
-            playButton.onclick = () => {
-              audio.play()
-              playButton.remove()
-            }
-            
-            document.body.appendChild(playButton)
-            setTimeout(() => playButton.remove(), 8000)
-          }
-        }
-        
-        // Try to play immediately
-        playAudio()
-      }
-      audio.onplay = () => {
-        console.log('✅ OpenAI TTS started playing')
-        // Remove any fallback buttons when audio starts playing
-        const fallbackButton = document.getElementById('audio-fallback-button')
-        if (fallbackButton) {
-          fallbackButton.remove()
-        }
+      // Promise-based audio play for better error handling
+      const playPromise = audio.play()
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('✅ OpenAI TTS playing successfully')
+          })
+          .catch((error) => {
+            console.log('❌ OpenAI TTS autoplay blocked, trying browser TTS')
+            // Fallback to browser TTS immediately
+            useBrowserTTS(text)
+          })
       }
       
       audio.onended = () => {
-        console.log('✅ OpenAI TTS finished playing')
+        console.log('✅ OpenAI TTS finished')
         setIsSpeaking(false)
         URL.revokeObjectURL(audioUrl)
-        // Clean up any remaining fallback buttons
-        const fallbackButton = document.getElementById('audio-fallback-button')
-        if (fallbackButton) {
-          fallbackButton.remove()
-        }
       }
       
-      audio.onerror = (e) => {
-        console.error('❌ OpenAI TTS playback error:', e)
+      audio.onerror = () => {
+        console.log('❌ OpenAI TTS error, trying browser TTS')
         setIsSpeaking(false)
         URL.revokeObjectURL(audioUrl)
-        // Clean up any fallback buttons on error
-        const fallbackButton = document.getElementById('audio-fallback-button')
-        if (fallbackButton) {
-          fallbackButton.remove()
-        }
+        useBrowserTTS(text)
       }
-      
-      // Fallback timeout with cleanup
-      setTimeout(() => {
-        if (isSpeaking) {
-          console.log('🔊 OpenAI TTS timeout, stopping')
-          setIsSpeaking(false)
-          audio.pause()
-          URL.revokeObjectURL(audioUrl)
-          const fallbackButton = document.getElementById('audio-fallback-button')
-          if (fallbackButton) {
-            fallbackButton.remove()
-          }
-        }
-      }, 30000)
       
     } catch (error) {
-      console.error('❌ OpenAI TTS error:', error)
-      setIsSpeaking(false)
+      console.log('❌ OpenAI TTS failed, using browser TTS')
+      useBrowserTTS(text)
+    }
+  }
+  
+  // Reliable Browser TTS Fallback
+  const useBrowserTTS = (text: string) => {
+    console.log('🔊 Using browser TTS')
+    
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.rate = voiceSpeed
+      utterance.pitch = 1
+      utterance.volume = 1
       
-      // Clean up any fallback buttons on error
-      const fallbackButton = document.getElementById('audio-fallback-button')
-      if (fallbackButton) {
-        fallbackButton.remove()
+      // Try to use a good English voice
+      const voices = speechSynthesis.getVoices()
+      const englishVoice = voices.find(voice => 
+        voice.lang.startsWith('en') && voice.name.includes('Enhanced')
+      ) || voices.find(voice => voice.lang.startsWith('en'))
+      
+      if (englishVoice) {
+        utterance.voice = englishVoice
       }
       
-      // Just fail silently if OpenAI TTS doesn't work
-      console.error('❌ OpenAI TTS failed, no fallback')
+      utterance.onstart = () => {
+        console.log('✅ Browser TTS started')
+        setIsSpeaking(true)
+      }
+      
+      utterance.onend = () => {
+        console.log('✅ Browser TTS finished')
+        setIsSpeaking(false)
+      }
+      
+      utterance.onerror = (event) => {
+        console.error('❌ Browser TTS error:', event.error)
+        setIsSpeaking(false)
+      }
+      
+      speechSynthesis.speak(utterance)
+    } else {
+      console.log('❌ No TTS available')
       setIsSpeaking(false)
     }
   }
@@ -799,38 +776,57 @@ ${mode.description}
         </div>
       </div>
 
-      {/* Simple Voice-First Input */}
+      {/* Simple One-Button Voice Interface */}
       <div className="bg-white border-t p-4">
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={continuousMode ? stopVoiceConversation : startVoiceConversation}
-            disabled={isProcessing}
-            className={continuousMode 
-              ? 'flex-1 py-4 rounded-xl font-semibold transition-all bg-red-500 text-white' 
-              : 'flex-1 py-4 rounded-xl font-semibold transition-all bg-blue-500 text-white hover:bg-blue-600'}
-          >
-            {continuousMode ? '⏹️ Stop Listening' : '🎤 Start Speaking'}
-          </button>
-          
-          <input
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Or type here..."
-            className="flex-1 px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            disabled={isProcessing}
-          />
-          
-          {inputText.trim() && (
+        {!continuousMode ? (
+          <div className="text-center">
             <button
-              onClick={() => handleSendMessage()}
+              onClick={startVoiceConversation}
               disabled={isProcessing}
-              className="px-4 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600"
+              className="w-full py-6 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-2xl font-bold text-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
             >
-              Send
+              🎤 Start Voice Conversation
             </button>
-          )}
-        </div>
+            <p className="text-gray-500 text-sm mt-2">Tap to start speaking with your AI coach</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="text-center">
+              <div className="inline-flex items-center space-x-2 bg-red-50 text-red-600 px-4 py-2 rounded-full">
+                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                <span className="font-semibold">Listening...</span>
+              </div>
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={stopVoiceConversation}
+                className="flex-1 py-4 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors"
+              >
+                ⏹️ Stop
+              </button>
+              
+              <input
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder="Or type here..."
+                className="flex-1 px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                disabled={isProcessing}
+              />
+              
+              {inputText.trim() && (
+                <button
+                  onClick={() => handleSendMessage()}
+                  disabled={isProcessing}
+                  className="px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 font-semibold"
+                >
+                  Send
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Upgrade Popup */}
