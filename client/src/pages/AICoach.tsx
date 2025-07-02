@@ -173,16 +173,8 @@ const AICoach = () => {
     { code: 'shimmer', name: 'Shimmer (Soft Female)', flag: '✨' }
   ]
 
-  // Load voices and auto-start
+  // Auto-start voice when component loads
   useEffect(() => {
-    // Load browser voices
-    if ('speechSynthesis' in window) {
-      speechSynthesis.getVoices()
-      window.speechSynthesis.onvoiceschanged = () => {
-        speechSynthesis.getVoices()
-      }
-    }
-    
     if (hasReachedLimit) {
       setUpgradeTrigger('daily_limit')
       setShowUpgradePopup(true)
@@ -287,110 +279,139 @@ const AICoach = () => {
     }
   }
 
-  // Simple and Reliable TTS for Mobile & Desktop
+  // Fixed OpenAI TTS Implementation
   const speakText = async (text: string) => {
-    console.log('🔊 Starting TTS:', text.substring(0, 50))
+    console.log('🔊 OpenAI TTS starting:', selectedVoice, text.substring(0, 50))
     
     // Stop any currently playing audio
     if (isSpeaking) {
       console.log('🛑 Stopping previous audio')
       setIsSpeaking(false)
       speechSynthesis.cancel()
+      // Stop any existing audio elements
+      const existingAudio = document.querySelectorAll('audio')
+      existingAudio.forEach(audio => {
+        audio.pause()
+        audio.currentTime = 0
+      })
     }
     
     setIsSpeaking(true)
     
-    // Try OpenAI TTS first (better quality)
     try {
-      console.log('📡 Trying OpenAI TTS...')
+      console.log('📡 Requesting OpenAI TTS from:', `${API_BASE_URL}/api/ai/text-to-speech`)
+      
       const response = await axios.post(`${API_BASE_URL}/api/ai/text-to-speech`, {
         text: text,
         voice: selectedVoice
       }, {
         responseType: 'blob',
-        timeout: 10000
+        timeout: 15000
       })
       
-      console.log('✅ OpenAI TTS received')
+      console.log('✅ OpenAI TTS response received, size:', response.data.size)
+      
+      // Create audio from blob
       const audioBlob = new Blob([response.data], { type: 'audio/mpeg' })
       const audioUrl = URL.createObjectURL(audioBlob)
       const audio = new Audio(audioUrl)
       
+      // Set audio properties
+      audio.preload = 'auto'
       audio.playbackRate = voiceSpeed
+      audio.volume = 1.0
       
-      // Promise-based audio play for better error handling
-      const playPromise = audio.play()
+      // Create user interaction handler for mobile
+      const playAudio = async () => {
+        try {
+          console.log('🔊 Attempting to play OpenAI TTS audio...')
+          await audio.play()
+          console.log('✅ OpenAI TTS audio playing successfully')
+        } catch (playError) {
+          console.error('❌ Audio play failed:', playError)
+          
+          // Create a play button for user interaction
+          const playButton = document.createElement('button')
+          playButton.textContent = '🔊 Tap to Hear Response'
+          playButton.style.cssText = `
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            background: #3b82f6;
+            color: white;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+            animation: pulse 2s infinite;
+          `
+          
+          playButton.onclick = async () => {
+            try {
+              await audio.play()
+              playButton.remove()
+            } catch (e) {
+              console.error('❌ Manual play also failed:', e)
+              playButton.remove()
+              setIsSpeaking(false)
+            }
+          }
+          
+          document.body.appendChild(playButton)
+          
+          // Auto-remove button after 10 seconds
+          setTimeout(() => {
+            if (playButton.parentNode) {
+              playButton.remove()
+              setIsSpeaking(false)
+            }
+          }, 10000)
+        }
+      }
       
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            console.log('✅ OpenAI TTS playing successfully')
-          })
-          .catch((error) => {
-            console.log('❌ OpenAI TTS autoplay blocked, trying browser TTS')
-            // Fallback to browser TTS immediately
-            useBrowserTTS(text)
-          })
+      // Event handlers
+      audio.onloadeddata = () => {
+        console.log('✅ OpenAI TTS audio loaded, attempting play')
+        playAudio()
+      }
+      
+      audio.onplay = () => {
+        console.log('✅ OpenAI TTS started playing')
       }
       
       audio.onended = () => {
-        console.log('✅ OpenAI TTS finished')
+        console.log('✅ OpenAI TTS finished playing')
         setIsSpeaking(false)
         URL.revokeObjectURL(audioUrl)
       }
       
-      audio.onerror = () => {
-        console.log('❌ OpenAI TTS error, trying browser TTS')
+      audio.onerror = (e) => {
+        console.error('❌ OpenAI TTS audio error:', e)
         setIsSpeaking(false)
         URL.revokeObjectURL(audioUrl)
-        useBrowserTTS(text)
       }
+      
+      // Cleanup timeout
+      setTimeout(() => {
+        if (isSpeaking) {
+          console.log('⏱️ OpenAI TTS timeout, cleaning up')
+          setIsSpeaking(false)
+          audio.pause()
+          URL.revokeObjectURL(audioUrl)
+        }
+      }, 30000)
       
     } catch (error) {
-      console.log('❌ OpenAI TTS failed, using browser TTS')
-      useBrowserTTS(text)
-    }
-  }
-  
-  // Reliable Browser TTS Fallback
-  const useBrowserTTS = (text: string) => {
-    console.log('🔊 Using browser TTS')
-    
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.rate = voiceSpeed
-      utterance.pitch = 1
-      utterance.volume = 1
-      
-      // Try to use a good English voice
-      const voices = speechSynthesis.getVoices()
-      const englishVoice = voices.find(voice => 
-        voice.lang.startsWith('en') && voice.name.includes('Enhanced')
-      ) || voices.find(voice => voice.lang.startsWith('en'))
-      
-      if (englishVoice) {
-        utterance.voice = englishVoice
-      }
-      
-      utterance.onstart = () => {
-        console.log('✅ Browser TTS started')
-        setIsSpeaking(true)
-      }
-      
-      utterance.onend = () => {
-        console.log('✅ Browser TTS finished')
-        setIsSpeaking(false)
-      }
-      
-      utterance.onerror = (event) => {
-        console.error('❌ Browser TTS error:', event.error)
-        setIsSpeaking(false)
-      }
-      
-      speechSynthesis.speak(utterance)
-    } else {
-      console.log('❌ No TTS available')
+      console.error('❌ OpenAI TTS error:', error)
       setIsSpeaking(false)
+      
+      // Show error message
+      alert('Voice response failed. Please check your internet connection.')
     }
   }
 
