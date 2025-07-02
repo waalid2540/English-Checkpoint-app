@@ -756,12 +756,10 @@ ${mode.description}
       <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
         <div className="space-y-3">
           {messages.map((message) => (
-            <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                message.sender === 'user' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-white text-gray-800 shadow-sm border'
-              }`}>
+            <div key={message.id} className={message.sender === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+              <div className={message.sender === 'user' 
+                ? 'max-w-[85%] rounded-2xl px-4 py-3 bg-blue-500 text-white' 
+                : 'max-w-[85%] rounded-2xl px-4 py-3 bg-white text-gray-800 shadow-sm border'}>
                 <p className="text-sm leading-relaxed">{message.text}</p>
                 {message.sender === 'coach' && (
                   <button
@@ -810,11 +808,9 @@ ${mode.description}
           <button
             onClick={continuousMode ? stopVoiceConversation : startVoiceConversation}
             disabled={isProcessing}
-            className={`flex-1 py-4 rounded-xl font-semibold transition-all ${
-              continuousMode 
-                ? 'bg-red-500 text-white' 
-                : 'bg-blue-500 text-white hover:bg-blue-600'
-            }`}
+            className={continuousMode 
+              ? 'flex-1 py-4 rounded-xl font-semibold transition-all bg-red-500 text-white' 
+              : 'flex-1 py-4 rounded-xl font-semibold transition-all bg-blue-500 text-white hover:bg-blue-600'}
           >
             {continuousMode ? '⏹️ Stop Listening' : '🎤 Start Speaking'}
           </button>
