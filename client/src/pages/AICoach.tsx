@@ -681,33 +681,32 @@ ${mode.description}
         </div>
       </div>
           
-          {/* Mode Selection */}
-          {!currentMode && (
-            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        {/* Mode Selection */}
+        {!currentMode && (
+          <div className="p-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {modes.map((mode) => (
                 <button
                   key={mode.id}
                   onClick={async () => {
                     if (mode.isPremium && !subscription.isPremium) {
-                      // Show premium upgrade prompt
                       const upgradePrompt = confirm(
-                        `${mode.name} is a Premium feature!\n\nUpgrade to Premium to access:\n• Unlimited conversations\n• ${mode.description}\n• All advanced features\n\nStart your 7-day free trial now?`
+                        mode.name + " is a Premium feature! Upgrade to Premium to access unlimited conversations and all advanced features. Start your 7-day free trial now?"
                       )
                       if (upgradePrompt) {
-                        // Start Stripe checkout for trial
                         try {
                           const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
                           
-                          const response = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
+                          const response = await fetch(API_BASE_URL + '/api/stripe/create-checkout-session', {
                             method: 'POST',
                             headers: { 
                               'Content-Type': 'application/json',
-                              'Authorization': `Bearer ${session?.access_token || ''}`
+                              'Authorization': 'Bearer ' + (session?.access_token || '')
                             },
                             body: JSON.stringify({
                               priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
-                              successUrl: `${window.location.origin}/?success=true`,
-                              cancelUrl: `${window.location.origin}/ai-coach?canceled=true`
+                              successUrl: window.location.origin + '/?success=true',
+                              cancelUrl: window.location.origin + '/ai-coach?canceled=true'
                             })
                           })
                           
@@ -723,13 +722,10 @@ ${mode.description}
                       selectMode(mode)
                     }
                   }}
-                  className={`group relative p-4 rounded-xl border-2 border-transparent bg-gradient-to-br ${
-                    mode.isPremium && !subscription.isPremium 
-                      ? 'from-gray-400 to-gray-500 opacity-75' 
-                      : mode.gradient
-                  } hover:scale-105 transform transition-all duration-200 shadow-lg hover:shadow-xl`}
+                  className={mode.isPremium && !subscription.isPremium 
+                    ? 'group relative p-4 rounded-xl bg-gray-400 opacity-75 hover:scale-105 transform transition-all duration-200 shadow-lg hover:shadow-xl' 
+                    : 'group relative p-4 rounded-xl bg-gradient-to-br ' + mode.gradient + ' hover:scale-105 transform transition-all duration-200 shadow-lg hover:shadow-xl'}
                 >
-                  {/* Premium Badge */}
                   {mode.isPremium && (
                     <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
                       {subscription.isPremium ? '⭐' : '🔒'}
@@ -740,7 +736,7 @@ ${mode.description}
                     <div className="text-2xl mb-2">{mode.icon}</div>
                     <div className="text-white font-semibold text-sm">{mode.name}</div>
                     {mode.isPremium && !subscription.isPremium && (
-                      <div className="text-xs text-white text-opacity-80 mt-1">Premium</div>
+                      <div className="text-xs text-white opacity-80 mt-1">Premium</div>
                     )}
                   </div>
                   
@@ -748,16 +744,16 @@ ${mode.description}
                 </button>
               ))}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
 
-      {/* Clean Chat Messages */}
       <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
         <div className="space-y-3">
-          {messages.map((message) => (
-            <div key={message.id} className={message.sender === 'user' ? 'flex justify-end' : 'flex justify-start'}>
-              <div className={message.sender === 'user' 
+          {messages.map((message) => {
+            const isUser = message.sender === 'user'
+            return (
+            <div key={message.id} className={isUser ? 'flex justify-end' : 'flex justify-start'}>
+              <div className={isUser 
                 ? 'max-w-xs rounded-2xl px-4 py-3 bg-blue-500 text-white' 
                 : 'max-w-xs rounded-2xl px-4 py-3 bg-white text-gray-800 shadow-sm border'}>
                 <p className="text-sm leading-relaxed">{message.text}</p>
@@ -772,11 +768,12 @@ ${mode.description}
                 )}
               </div>
             </div>
-          ))}
+            )
+          })}
           
           {/* Typing Indicator */}
           {isProcessing && (
-            <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 bg-opacity-80">
               <div className="py-8 px-6">
                 <div className="flex space-x-4">
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg">
