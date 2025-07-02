@@ -280,93 +280,42 @@ const AICoach = () => {
     }
   }
 
-  // WORKING OpenAI TTS - Simple Implementation
-  const speakText = async (text: string) => {
-    console.log('🔊 TTS Request:', text.substring(0, 30))
+  // SIMPLE BROWSER TTS THAT ACTUALLY WORKS
+  const speakText = (text: string) => {
+    console.log('🔊 Speaking:', text.substring(0, 50))
     
+    // Stop any current speech
+    speechSynthesis.cancel()
     setIsSpeaking(true)
     
-    try {
-      // Make request to your server
-      const response = await fetch(`${API_BASE_URL}/api/ai/text-to-speech`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: text,
-          voice: selectedVoice
-        })
-      })
-      
-      if (!response.ok) {
-        throw new Error(`TTS failed: ${response.status}`)
-      }
-      
-      // Get audio data
-      const audioData = await response.blob()
-      console.log('✅ Audio received, size:', audioData.size)
-      
-      // Create and play audio
-      const audioUrl = URL.createObjectURL(audioData)
-      const audio = new Audio(audioUrl)
-      
-      audio.oncanplay = () => {
-        console.log('✅ Audio ready, playing...')
-        audio.play().catch(e => {
-          console.log('❌ Autoplay blocked, showing button')
-          showPlayButton(audio)
-        })
-      }
-      
-      audio.onended = () => {
-        console.log('✅ Audio finished')
-        setIsSpeaking(false)
-        URL.revokeObjectURL(audioUrl)
-      }
-      
-      audio.onerror = () => {
-        console.log('❌ Audio error')
-        setIsSpeaking(false)
-        URL.revokeObjectURL(audioUrl)
-      }
-      
-    } catch (error) {
-      console.error('❌ TTS Error:', error)
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = voiceSpeed
+    utterance.pitch = 1
+    utterance.volume = 1
+    
+    // Use English voice
+    const voices = speechSynthesis.getVoices()
+    const englishVoice = voices.find(voice => voice.lang.startsWith('en'))
+    if (englishVoice) {
+      utterance.voice = englishVoice
+    }
+    
+    utterance.onstart = () => {
+      console.log('✅ Speech started')
+      setIsSpeaking(true)
+    }
+    
+    utterance.onend = () => {
+      console.log('✅ Speech ended')
       setIsSpeaking(false)
     }
-  }
-  
-  // Show play button for mobile
-  const showPlayButton = (audio: HTMLAudioElement) => {
-    const button = document.createElement('button')
-    button.innerHTML = '🔊 Tap to Hear'
-    button.style.cssText = `
-      position: fixed;
-      bottom: 120px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #ef4444;
-      color: white;
-      padding: 12px 20px;
-      border: none;
-      border-radius: 20px;
-      font-size: 16px;
-      font-weight: bold;
-      z-index: 9999;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    `
     
-    button.onclick = () => {
-      audio.play()
-      button.remove()
+    utterance.onerror = () => {
+      console.log('❌ Speech error')
+      setIsSpeaking(false)
     }
     
-    document.body.appendChild(button)
-    
-    setTimeout(() => {
-      if (button.parentNode) button.remove()
-    }, 8000)
+    speechSynthesis.speak(utterance)
   }
 
   const getAIResponse = async (userMessage: string, mode: string | null): Promise<string> => {
