@@ -758,8 +758,8 @@ ${mode.description}
           {messages.map((message) => (
             <div key={message.id} className={message.sender === 'user' ? 'flex justify-end' : 'flex justify-start'}>
               <div className={message.sender === 'user' 
-                ? 'max-w-[85%] rounded-2xl px-4 py-3 bg-blue-500 text-white' 
-                : 'max-w-[85%] rounded-2xl px-4 py-3 bg-white text-gray-800 shadow-sm border'}>
+                ? 'max-w-xs rounded-2xl px-4 py-3 bg-blue-500 text-white' 
+                : 'max-w-xs rounded-2xl px-4 py-3 bg-white text-gray-800 shadow-sm border'}>
                 <p className="text-sm leading-relaxed">{message.text}</p>
                 {message.sender === 'coach' && (
                   <button
