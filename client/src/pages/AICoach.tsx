@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { dotQuestions } from '../data/dot-questions'
 import UpgradePopup from '../components/UpgradePopup'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://english-checkpoint-backend.onrender.com'
 
 interface Message {
   id: string
@@ -280,42 +280,68 @@ const AICoach = () => {
     }
   }
 
-  // SIMPLE BROWSER TTS THAT ACTUALLY WORKS
-  const speakText = (text: string) => {
-    console.log('🔊 Speaking:', text.substring(0, 50))
+  // FIXED OpenAI TTS for Mobile
+  const speakText = async (text: string) => {
+    console.log('🔊 OpenAI TTS starting:', text.substring(0, 50))
+    console.log('📡 Using server:', API_BASE_URL)
     
-    // Stop any current speech
-    speechSynthesis.cancel()
     setIsSpeaking(true)
     
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = voiceSpeed
-    utterance.pitch = 1
-    utterance.volume = 1
-    
-    // Use English voice
-    const voices = speechSynthesis.getVoices()
-    const englishVoice = voices.find(voice => voice.lang.startsWith('en'))
-    if (englishVoice) {
-      utterance.voice = englishVoice
-    }
-    
-    utterance.onstart = () => {
-      console.log('✅ Speech started')
-      setIsSpeaking(true)
-    }
-    
-    utterance.onend = () => {
-      console.log('✅ Speech ended')
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/ai/text-to-speech`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          voice: selectedVoice
+        })
+      })
+      
+      console.log('📡 Server response status:', response.status)
+      
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`)
+      }
+      
+      const audioBlob = await response.blob()
+      console.log('✅ Audio blob received, size:', audioBlob.size)
+      
+      const audioUrl = URL.createObjectURL(audioBlob)
+      const audio = new Audio(audioUrl)
+      
+      audio.onloadeddata = () => {
+        console.log('✅ Audio loaded, attempting to play')
+        audio.play().catch(error => {
+          console.log('❌ Autoplay blocked, user must tap')
+          // Show tap button for mobile
+          const btn = document.createElement('button')
+          btn.textContent = '🔊 Tap to hear AI response'
+          btn.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#3b82f6;color:white;padding:15px 25px;border:none;border-radius:25px;font-size:16px;font-weight:bold;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3)'
+          btn.onclick = () => { audio.play(); btn.remove() }
+          document.body.appendChild(btn)
+          setTimeout(() => btn.remove(), 10000)
+        })
+      }
+      
+      audio.onended = () => {
+        console.log('✅ Audio playback finished')
+        setIsSpeaking(false)
+        URL.revokeObjectURL(audioUrl)
+      }
+      
+      audio.onerror = (e) => {
+        console.error('❌ Audio playback error:', e)
+        setIsSpeaking(false)
+        URL.revokeObjectURL(audioUrl)
+      }
+      
+    } catch (error) {
+      console.error('❌ OpenAI TTS failed:', error)
       setIsSpeaking(false)
+      alert('Voice failed. Check internet connection.')
     }
-    
-    utterance.onerror = () => {
-      console.log('❌ Speech error')
-      setIsSpeaking(false)
-    }
-    
-    speechSynthesis.speak(utterance)
   }
 
   const getAIResponse = async (userMessage: string, mode: string | null): Promise<string> => {
