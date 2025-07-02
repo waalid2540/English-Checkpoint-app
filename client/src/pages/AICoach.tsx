@@ -206,6 +206,18 @@ const AICoach = () => {
     }
 
     recognition.onresult = async (event: any) => {
+      // Stop any AI speaking when user starts talking (interruption)
+      if (isSpeaking) {
+        console.log('🛑 User interrupted AI - stopping speech')
+        setIsSpeaking(false)
+        // Stop any audio playing
+        const audioElements = document.querySelectorAll('audio')
+        audioElements.forEach(audio => {
+          audio.pause()
+          audio.currentTime = 0
+        })
+      }
+      
       const lastResult = event.results[event.results.length - 1]
       if (lastResult.isFinal) {
         const transcript = lastResult[0].transcript.trim()
@@ -300,79 +312,43 @@ const AICoach = () => {
       audio.onloadstart = () => console.log('✅ OpenAI TTS audio loading...')
       audio.oncanplaythrough = () => {
         console.log('✅ OpenAI TTS audio ready to play')
-        // Enhanced mobile audio play with better fallback
+        // Force audio to play on mobile - no complex fallbacks
         const playAudio = async () => {
           try {
-            // For mobile, try direct play first
+            console.log('🔊 Attempting to play audio on mobile...')
             await audio.play()
-            console.log('✅ Audio playing directly')
+            console.log('✅ Audio playing successfully')
           } catch (e) {
-            console.error('❌ Direct play failed:', e)
-            
-            // Create persistent fallback button for mobile
-            const existingButton = document.getElementById('audio-fallback-button')
-            if (existingButton) {
-              existingButton.remove()
-            }
-            
+            console.error('❌ Audio play failed:', e)
+            // Show simple tap button
             const playButton = document.createElement('button')
-            playButton.id = 'audio-fallback-button'
-            playButton.textContent = '🔊 Tap to hear AI response'
+            playButton.textContent = '🔊 Tap to hear'
             playButton.style.cssText = `
               position: fixed;
-              bottom: 20px;
+              bottom: 80px;
               right: 20px;
               z-index: 10000;
-              background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+              background: #3b82f6;
               color: white;
-              padding: 12px 20px;
+              padding: 12px 16px;
               border: none;
-              border-radius: 25px;
-              font-size: 16px;
+              border-radius: 20px;
+              font-size: 14px;
               font-weight: bold;
-              box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
               cursor: pointer;
-              animation: bounce 1s infinite;
             `
             
-            // Add CSS animation
-            let style = document.getElementById('audio-animation-style')
-            if (!style) {
-              style = document.createElement('style')
-              style.id = 'audio-animation-style'
-              style.textContent = `
-                @keyframes bounce {
-                  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-                  40% { transform: translateY(-10px); }
-                  60% { transform: translateY(-5px); }
-                }
-              `
-              document.head.appendChild(style)
-            }
-            
-            playButton.onclick = async () => {
-              try {
-                await audio.play()
-                playButton.remove()
-                console.log('✅ Audio playing via fallback button')
-              } catch (err) {
-                console.error('❌ Fallback play failed:', err)
-                playButton.textContent = '❌ Audio unavailable'
-                setTimeout(() => playButton.remove(), 2000)
-              }
+            playButton.onclick = () => {
+              audio.play()
+              playButton.remove()
             }
             
             document.body.appendChild(playButton)
-            
-            // Auto-remove after 10 seconds
-            setTimeout(() => {
-              if (document.getElementById('audio-fallback-button')) {
-                playButton.remove()
-              }
-            }, 10000)
+            setTimeout(() => playButton.remove(), 8000)
           }
         }
         
+        // Try to play immediately
         playAudio()
       }
       audio.onplay = () => {
