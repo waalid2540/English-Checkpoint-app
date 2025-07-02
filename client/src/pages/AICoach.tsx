@@ -77,7 +77,7 @@ const AICoach = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "Hello! I'm your Checkpoint English Coach! 😊 I speak multiple languages and I'm here to help you master English for trucking and life in America.\n\n🌍 **Multilingual Support:** You can speak to me in Spanish, Somali, Arabic, French, Portuguese, or any language - I'll respond in your language AND teach you the English!\n\nWhich mode would you like to use today?",
+      text: "Hi! I'm your English Coach. Start speaking!",
       sender: 'coach',
       timestamp: new Date()
     }
@@ -173,11 +173,16 @@ const AICoach = () => {
     { code: 'shimmer', name: 'Shimmer (Soft Female)', flag: '✨' }
   ]
 
-  // Show upgrade popup when hitting limits
+  // Auto-start voice when component loads
   useEffect(() => {
     if (hasReachedLimit) {
       setUpgradeTrigger('daily_limit')
       setShowUpgradePopup(true)
+    } else {
+      // Auto-start voice conversation
+      setTimeout(() => {
+        startVoiceConversation()
+      }, 1000)
     }
   }, [hasReachedLimit])
 
@@ -631,82 +636,50 @@ ${mode.description}
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex flex-col">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
-        <div className="max-w-6xl mx-auto px-6 py-4">
+    <div className="h-screen bg-white flex flex-col">
+      {/* Modern Header with Voice Controls */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
+        <div className="px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="text-white text-xl font-bold">🚛</span>
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                </div>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                <span className="text-xl">🤖</span>
               </div>
-              
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-                  Checkpoint English Coach
-                </h1>
-                <p className="text-sm text-gray-600 font-medium">
-                  {currentMode 
-                    ? `🎯 ${modes.find(m => m.id === currentMode)?.name} Mode Active`
-                    : '🌟 Choose your learning adventure'
-                  }
-                </p>
+                <h1 className="text-lg font-bold">AI English Coach</h1>
+                {isListening && <p className="text-xs text-blue-100">🎤 Listening...</p>}
+                {isSpeaking && <p className="text-xs text-purple-100">🔊 Speaking...</p>}
               </div>
             </div>
             
-            {/* Voice Status and Controls */}
-            <div className="flex items-center space-x-3">
-              {/* OpenAI Voice Selector */}
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600 font-medium">🔊 Voice:</span>
-                <select
-                  value={selectedVoice}
-                  onChange={(e) => setSelectedVoice(e.target.value)}
-                  className="text-sm bg-white border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {availableVoices.map((voice) => (
-                    <option key={voice.code} value={voice.code}>
-                      {voice.flag} {voice.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Modern Voice Settings */}
+            <div className="flex items-center space-x-2">
+              <select
+                value={selectedVoice}
+                onChange={(e) => setSelectedVoice(e.target.value)}
+                className="text-xs bg-white/20 text-white border border-white/30 rounded-lg px-2 py-1 backdrop-blur"
+              >
+                {availableVoices.map((voice) => (
+                  <option key={voice.code} value={voice.code} className="text-black">
+                    {voice.flag} {voice.name}
+                  </option>
+                ))}
+              </select>
               
-              {/* Voice Speed Control */}
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600 font-medium">⚡ Speed:</span>
-                <select
-                  value={voiceSpeed}
-                  onChange={(e) => setVoiceSpeed(Number(e.target.value))}
-                  className="text-sm bg-white border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value={0.6}>0.6x (Slow)</option>
-                  <option value={0.8}>0.8x (Normal)</option>
-                  <option value={1.0}>1.0x (Fast)</option>
-                  <option value={1.2}>1.2x (Faster)</option>
-                </select>
-              </div>
-              
-              {isListening && (
-                <div className="flex items-center space-x-2 bg-gradient-to-r from-green-100 to-emerald-100 px-4 py-2 rounded-full border border-green-200">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-green-700 font-medium text-sm">🎤 Listening...</span>
-                </div>
-              )}
-              
-              {isSpeaking && (
-                <div className="flex items-center space-x-2 bg-gradient-to-r from-purple-100 to-pink-100 px-4 py-2 rounded-full border border-purple-200">
-                  <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
-                  <span className="text-purple-700 font-medium text-sm">🔊 Speaking...</span>
-                </div>
-              )}
+              <select
+                value={voiceSpeed}
+                onChange={(e) => setVoiceSpeed(Number(e.target.value))}
+                className="text-xs bg-white/20 text-white border border-white/30 rounded-lg px-2 py-1 backdrop-blur"
+              >
+                <option value={0.6} className="text-black">Slow</option>
+                <option value={0.8} className="text-black">Normal</option>
+                <option value={1.0} className="text-black">Fast</option>
+                <option value={1.2} className="text-black">Faster</option>
+              </select>
             </div>
           </div>
+        </div>
+      </div>
           
           {/* Mode Selection */}
           {!currentMode && (
@@ -779,67 +752,26 @@ ${mode.description}
         </div>
       </div>
 
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto">
+      {/* Clean Chat Messages */}
+      <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
+        <div className="space-y-3">
           {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`group relative ${
+            <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                 message.sender === 'user' 
-                  ? 'bg-white/60' 
-                  : 'bg-gradient-to-r from-blue-50/80 to-indigo-50/80'
-              } hover:bg-opacity-80 transition-all duration-200`}
-            >
-              <div className="py-8 px-6">
-                <div className="flex space-x-4">
-                  <div className={`relative flex-shrink-0`}>
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${
-                      message.sender === 'user' 
-                        ? 'bg-gradient-to-br from-green-500 to-emerald-600' 
-                        : 'bg-gradient-to-br from-blue-600 to-blue-700'
-                    }`}>
-                      <span className="text-white text-lg font-bold">
-                        {message.sender === 'user' ? '👨‍💼' : '🤖'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <div className="text-base font-bold text-gray-800">
-                        {message.sender === 'user' ? 'You' : 'English Coach'}
-                      </div>
-                    </div>
-                    
-                    <div className="prose prose-blue max-w-none">
-                      <div className="text-gray-800 leading-relaxed text-base whitespace-pre-wrap">
-                        {message.text}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between mt-2">
-                      <div className="text-xs text-gray-500">
-                        {message.timestamp.toLocaleString()}
-                      </div>
-                      
-                      {/* Speak button for AI messages */}
-                      {message.sender === 'coach' && (
-                        <button
-                          onClick={() => {
-                            console.log('🔊 Manual speak button clicked for message:', message.text.substring(0, 50))
-                            speakText(message.text)
-                          }}
-                          disabled={isSpeaking}
-                          className="flex items-center space-x-1 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-                        >
-                          <span>🔊</span>
-                          <span>{isSpeaking ? 'Speaking...' : 'Speak'}</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-white text-gray-800 shadow-sm border'
+              }`}>
+                <p className="text-sm leading-relaxed">{message.text}</p>
+                {message.sender === 'coach' && (
+                  <button
+                    onClick={() => speakText(message.text)}
+                    disabled={isSpeaking}
+                    className="mt-2 text-xs text-blue-500 hover:text-blue-700"
+                  >
+                    🔊 {isSpeaking ? 'Speaking...' : 'Hear this'}
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -872,85 +804,39 @@ ${mode.description}
         </div>
       </div>
 
-      {/* Input Area */}
-      <div className="bg-white/90 backdrop-blur-sm border-t border-gray-200/50 shadow-lg">
-        <div className="max-w-4xl mx-auto p-6">
-          <div className="flex items-end space-x-4">
-            {/* Voice Button */}
-            <div className="relative">
-              <button
-                onClick={continuousMode ? stopVoiceConversation : startVoiceConversation}
-                disabled={isProcessing}
-                className={`group relative p-4 rounded-2xl transition-all duration-300 transform hover:scale-105 ${
-                  continuousMode 
-                    ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg shadow-red-200 animate-pulse' 
-                    : 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-200 hover:shadow-xl'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                <div className="flex items-center justify-center w-6 h-6">
-                  {continuousMode ? '⏹️' : '🎤'}
-                </div>
-                
-                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                  {continuousMode ? 'Stop Voice Chat' : 'Start Voice Chat'}
-                </div>
-              </button>
-            </div>
-
-            {/* Text Input */}
-            <div className="flex-1 relative">
-              <div className="relative border-2 border-gray-200 rounded-2xl focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100 transition-all duration-200 bg-white shadow-sm">
-                <textarea
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      handleSendMessage()
-                    }
-                  }}
-                  placeholder="Type your message or use voice to speak with your English Coach..."
-                  className="w-full p-4 pr-16 border-0 bg-transparent resize-none focus:outline-none max-h-32 text-gray-800 placeholder-gray-400"
-                  rows={1}
-                  disabled={isProcessing}
-                />
-                
-                <button
-                  onClick={() => handleSendMessage()}
-                  disabled={isProcessing || !inputText.trim()}
-                  className="absolute right-2 bottom-2 p-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 shadow-lg"
-                >
-                  {isProcessing ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
+      {/* Simple Voice-First Input */}
+      <div className="bg-white border-t p-4">
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={continuousMode ? stopVoiceConversation : startVoiceConversation}
+            disabled={isProcessing}
+            className={`flex-1 py-4 rounded-xl font-semibold transition-all ${
+              continuousMode 
+                ? 'bg-red-500 text-white' 
+                : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}
+          >
+            {continuousMode ? '⏹️ Stop Listening' : '🎤 Start Speaking'}
+          </button>
           
-          {/* Status Bar */}
-          <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
-            <div className="flex items-center space-x-4">
-              <span className="flex items-center space-x-1">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                <span>Browser Speech Recognition</span>
-              </span>
-              <span className="flex items-center space-x-1">
-                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                <span>GPT-4 AI Coach</span>
-              </span>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <span>🎤 Voice + 🔊 OpenAI TTS</span>
-              <span>•</span>
-              <span>Press Enter to send</span>
-            </div>
-          </div>
+          <input
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            placeholder="Or type here..."
+            className="flex-1 px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            disabled={isProcessing}
+          />
+          
+          {inputText.trim() && (
+            <button
+              onClick={() => handleSendMessage()}
+              disabled={isProcessing}
+              className="px-4 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600"
+            >
+              Send
+            </button>
+          )}
         </div>
       </div>
       
