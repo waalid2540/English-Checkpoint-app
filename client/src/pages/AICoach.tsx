@@ -642,7 +642,7 @@ ${mode.description}
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
                 <span className="text-xl">🤖</span>
               </div>
               <div>
@@ -657,7 +657,7 @@ ${mode.description}
               <select
                 value={selectedVoice}
                 onChange={(e) => setSelectedVoice(e.target.value)}
-                className="text-xs bg-white/20 text-white border border-white/30 rounded-lg px-2 py-1 backdrop-blur"
+                className="text-xs bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-lg px-2 py-1 backdrop-blur"
               >
                 {availableVoices.map((voice) => (
                   <option key={voice.code} value={voice.code} className="text-black">
@@ -669,7 +669,7 @@ ${mode.description}
               <select
                 value={voiceSpeed}
                 onChange={(e) => setVoiceSpeed(Number(e.target.value))}
-                className="text-xs bg-white/20 text-white border border-white/30 rounded-lg px-2 py-1 backdrop-blur"
+                className="text-xs bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-lg px-2 py-1 backdrop-blur"
               >
                 <option value={0.6} className="text-black">Slow</option>
                 <option value={0.8} className="text-black">Normal</option>
@@ -740,11 +740,11 @@ ${mode.description}
                     <div className="text-2xl mb-2">{mode.icon}</div>
                     <div className="text-white font-semibold text-sm">{mode.name}</div>
                     {mode.isPremium && !subscription.isPremium && (
-                      <div className="text-xs text-white/80 mt-1">Premium</div>
+                      <div className="text-xs text-white text-opacity-80 mt-1">Premium</div>
                     )}
                   </div>
                   
-                  <div className="absolute inset-0 bg-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                  <div className="absolute inset-0 bg-white bg-opacity-20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                 </button>
               ))}
             </div>
