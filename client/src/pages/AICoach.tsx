@@ -89,7 +89,7 @@ const AICoach = () => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [continuousMode, setContinuousMode] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState('en')
-  const [selectedVoice, setSelectedVoice] = useState('en')
+  const [selectedVoice, setSelectedVoice] = useState('alloy')
   const [voiceSpeed, setVoiceSpeed] = useState(0.8)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [isDOTPracticeMode, setIsDOTPracticeMode] = useState(false)
@@ -163,22 +163,14 @@ const AICoach = () => {
     { code: 'de', name: 'German', flag: '🇩🇪' },
   ]
 
-  // Available gTTS voices/languages
+  // Available OpenAI TTS voices
   const availableVoices = [
-    { code: 'en', name: 'English (US)', flag: '🇺🇸' },
-    { code: 'en-gb', name: 'English (UK)', flag: '🇬🇧' },
-    { code: 'en-au', name: 'English (Australia)', flag: '🇦🇺' },
-    { code: 'es', name: 'Spanish', flag: '🇪🇸' },
-    { code: 'fr', name: 'French', flag: '🇫🇷' },
-    { code: 'de', name: 'German', flag: '🇩🇪' },
-    { code: 'it', name: 'Italian', flag: '🇮🇹' },
-    { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
-    { code: 'ru', name: 'Russian', flag: '🇷🇺' },
-    { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
-    { code: 'ko', name: 'Korean', flag: '🇰🇷' },
-    { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
-    { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
-    { code: 'zh', name: 'Chinese', flag: '🇨🇳' }
+    { code: 'alloy', name: 'Alloy (Balanced)', flag: '🎭' },
+    { code: 'echo', name: 'Echo (Male)', flag: '♂️' },
+    { code: 'fable', name: 'Fable (Expressive)', flag: '🎪' },
+    { code: 'nova', name: 'Nova (Female)', flag: '♀️' },
+    { code: 'onyx', name: 'Onyx (Deep Male)', flag: '🔥' },
+    { code: 'shimmer', name: 'Shimmer (Soft Female)', flag: '✨' }
   ]
 
   // Show upgrade popup when hitting limits
@@ -270,26 +262,32 @@ const AICoach = () => {
     }
   }
 
-  // OpenAI TTS Audio Playback with Mobile Fix
+  // Smart TTS with Mobile-First Approach
   const speakText = async (text: string) => {
-    console.log('🔊 AI speaking with OpenAI TTS:', selectedVoice, text)
+    console.log('🔊 Smart TTS starting:', selectedVoice, text.substring(0, 50))
     
     // Stop any currently playing audio
     if (isSpeaking) {
       console.log('🛑 Stopping previous audio')
       setIsSpeaking(false)
+      speechSynthesis.cancel() // Cancel browser TTS too
     }
     
     setIsSpeaking(true)
     
+    // Use OpenAI TTS for all devices
     try {
+      console.log('📡 Requesting TTS from:', `${API_BASE_URL}/api/ai/text-to-speech`)
+      
       const response = await axios.post(`${API_BASE_URL}/api/ai/text-to-speech`, {
         text: text,
-        voice: selectedVoice === 'en' ? 'alloy' : selectedVoice
+        voice: selectedVoice // Now using OpenAI voice names directly
       }, {
         responseType: 'blob',
         timeout: 15000
       })
+      
+      console.log('✅ OpenAI TTS response received, size:', response.data.size)
       
       const audioBlob = new Blob([response.data], { type: 'audio/mpeg' })
       const audioUrl = URL.createObjectURL(audioBlob)
@@ -432,23 +430,9 @@ const AICoach = () => {
         fallbackButton.remove()
       }
       
-      // Fallback to browser TTS if OpenAI TTS fails
-      if ('speechSynthesis' in window) {
-        console.log('🔄 Falling back to browser TTS')
-        const utterance = new SpeechSynthesisUtterance(text)
-        utterance.rate = voiceSpeed
-        utterance.lang = selectedVoice === 'en' ? 'en-US' : selectedVoice
-        utterance.onstart = () => console.log('✅ Browser TTS started')
-        utterance.onend = () => {
-          console.log('✅ Browser TTS ended')
-          setIsSpeaking(false)
-        }
-        utterance.onerror = () => {
-          console.error('❌ Browser TTS error')
-          setIsSpeaking(false)
-        }
-        speechSynthesis.speak(utterance)
-      }
+      // Just fail silently if OpenAI TTS doesn't work
+      console.error('❌ OpenAI TTS failed, no fallback')
+      setIsSpeaking(false)
     }
   }
 
@@ -612,8 +596,9 @@ Remember: You're not just teaching English - you're a trusted friend who remembe
 
       setMessages(prev => [...prev, coachResponse])
       
-      // Only speak the response if it came from voice input
-      if (shouldSpeak) {
+      // Speak the response if it came from voice input OR if voice is enabled
+      if (shouldSpeak || isListening) {
+        console.log('🗣️ Speaking AI response - shouldSpeak:', shouldSpeak, 'isListening:', isListening)
         speakText(aiReply)
       }
       
@@ -700,7 +685,7 @@ ${mode.description}
             
             {/* Voice Status and Controls */}
             <div className="flex items-center space-x-3">
-              {/* gTTS Voice Selector */}
+              {/* OpenAI Voice Selector */}
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-600 font-medium">🔊 Voice:</span>
                 <select
@@ -857,8 +842,25 @@ ${mode.description}
                       </div>
                     </div>
                     
-                    <div className="text-xs text-gray-500 mt-2">
-                      {message.timestamp.toLocaleString()}
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="text-xs text-gray-500">
+                        {message.timestamp.toLocaleString()}
+                      </div>
+                      
+                      {/* Speak button for AI messages */}
+                      {message.sender === 'coach' && (
+                        <button
+                          onClick={() => {
+                            console.log('🔊 Manual speak button clicked for message:', message.text.substring(0, 50))
+                            speakText(message.text)
+                          }}
+                          disabled={isSpeaking}
+                          className="flex items-center space-x-1 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                        >
+                          <span>🔊</span>
+                          <span>{isSpeaking ? 'Speaking...' : 'Speak'}</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -968,7 +970,7 @@ ${mode.description}
             </div>
             
             <div className="flex items-center space-x-2">
-              <span>🎤 Voice + 🔊 TTS</span>
+              <span>🎤 Voice + 🔊 OpenAI TTS</span>
               <span>•</span>
               <span>Press Enter to send</span>
             </div>

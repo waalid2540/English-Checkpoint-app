@@ -87,20 +87,27 @@ app.get('/api/subscription/status', async (req, res) => {
 
     console.log('✅ User authenticated:', user.email);
 
-    // Check user's subscription status
+    // Check user's subscription status with better error handling
     console.log('📊 Checking subscription in database...');
-    const { data: subscription, error: subError } = await supabase
-      .from('user_subscriptions')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
+    let subscription = null;
+    
+    try {
+      const { data, error: subError } = await supabase
+        .from('user_subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no rows found
 
-    if (subError) {
-      console.log('📊 Subscription query result:', subError.code, subError.message);
-      if (subError.code !== 'PGRST116') { // PGRST116 = no rows found
-        console.error('❌ Subscription query error:', subError);
-        // Don't return 500, just treat as no subscription
+      if (subError) {
+        console.log('📊 Subscription query error:', subError.code, subError.message);
+        // Only log the error, don't fail - treat as no subscription
+      } else {
+        subscription = data;
+        console.log('📊 Subscription query successful:', data ? 'Found subscription' : 'No subscription');
       }
+    } catch (dbError) {
+      console.error('❌ Database connection error:', dbError);
+      // Continue with no subscription - don't fail the request
     }
 
     console.log('📊 Subscription data:', subscription ? 'Found subscription' : 'No subscription');
