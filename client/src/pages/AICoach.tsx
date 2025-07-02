@@ -96,6 +96,7 @@ const AICoach = () => {
   const [showUpgradePopup, setShowUpgradePopup] = useState(false)
   const [upgradeTrigger, setUpgradeTrigger] = useState<'daily_limit' | 'dot_questions' | 'premium_feature'>('daily_limit')
   const [userProfile, setUserProfile] = useState<any>({})
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
   
   const recognitionRef = useRef<any>(null)
 
@@ -280,67 +281,40 @@ const AICoach = () => {
     }
   }
 
-  // FIXED OpenAI TTS for Mobile
+  // Professional OpenAI TTS Implementation
   const speakText = async (text: string) => {
-    console.log('🔊 OpenAI TTS starting:', text.substring(0, 50))
-    console.log('📡 Using server:', API_BASE_URL)
-    
     setIsSpeaking(true)
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/ai/text-to-speech`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: text,
-          voice: selectedVoice
-        })
+      const response = await axios.post(`${API_BASE_URL}/api/ai/text-to-speech`, {
+        text: text,
+        voice: selectedVoice
+      }, {
+        responseType: 'blob'
       })
       
-      console.log('📡 Server response status:', response.status)
-      
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`)
-      }
-      
-      const audioBlob = await response.blob()
-      console.log('✅ Audio blob received, size:', audioBlob.size)
-      
+      const audioBlob = new Blob([response.data], { type: 'audio/mpeg' })
       const audioUrl = URL.createObjectURL(audioBlob)
       const audio = new Audio(audioUrl)
       
-      audio.onloadeddata = () => {
-        console.log('✅ Audio loaded, attempting to play')
-        audio.play().catch(error => {
-          console.log('❌ Autoplay blocked, user must tap')
-          // Show tap button for mobile
-          const btn = document.createElement('button')
-          btn.textContent = '🔊 Tap to hear AI response'
-          btn.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#3b82f6;color:white;padding:15px 25px;border:none;border-radius:25px;font-size:16px;font-weight:bold;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3)'
-          btn.onclick = () => { audio.play(); btn.remove() }
-          document.body.appendChild(btn)
-          setTimeout(() => btn.remove(), 10000)
-        })
-      }
+      audio.playbackRate = voiceSpeed
+      
+      // Handle autoplay restrictions professionally
+      audio.play().then(() => {
+        // Audio playing successfully
+      }).catch(() => {
+        // Autoplay blocked - enable manual play
+        setAudioUrl(audioUrl)
+      })
       
       audio.onended = () => {
-        console.log('✅ Audio playback finished')
         setIsSpeaking(false)
-        URL.revokeObjectURL(audioUrl)
-      }
-      
-      audio.onerror = (e) => {
-        console.error('❌ Audio playback error:', e)
-        setIsSpeaking(false)
+        setAudioUrl(null)
         URL.revokeObjectURL(audioUrl)
       }
       
     } catch (error) {
-      console.error('❌ OpenAI TTS failed:', error)
       setIsSpeaking(false)
-      alert('Voice failed. Check internet connection.')
     }
   }
 
@@ -693,11 +667,19 @@ ${mode.description}
                 <p className="text-sm leading-relaxed">{message.text}</p>
                 {message.sender === 'coach' && (
                   <button
-                    onClick={() => speakText(message.text)}
+                    onClick={() => {
+                      if (audioUrl) {
+                        const audio = new Audio(audioUrl)
+                        audio.playbackRate = voiceSpeed
+                        audio.play()
+                      } else {
+                        speakText(message.text)
+                      }
+                    }}
                     disabled={isSpeaking}
                     className="mt-2 text-xs text-blue-500 hover:text-blue-700"
                   >
-                    🔊 {isSpeaking ? 'Speaking...' : 'Hear this'}
+                    🔊 {isSpeaking ? 'Speaking...' : 'Play Audio'}
                   </button>
                 )}
               </div>
