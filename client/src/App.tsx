@@ -59,7 +59,7 @@ function App() {
           
           <Route path="/ai-coach" element={
             <div className="min-h-screen">
-              <AICoachAvatar />
+              <AICoach />
             </div>
           } />
           
