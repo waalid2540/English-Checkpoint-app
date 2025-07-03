@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { samplePrompts } from '../data/sample-prompts'
 import { useSubscription } from '../hooks/useSubscription'
@@ -57,6 +57,16 @@ const QATraining = () => {
   const [isPlaying, setIsPlaying] = useState(false)
   const [playingType, setPlayingType] = useState<'officer' | 'driver' | null>(null)
   const [showUpgradePopup, setShowUpgradePopup] = useState(false)
+  
+  // Pronunciation Trainer States
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordedAudio, setRecordedAudio] = useState<string | null>(null)
+  const [recordingType, setRecordingType] = useState<'officer' | 'driver' | null>(null)
+  const [showPronunciationMode, setShowPronunciationMode] = useState(false)
+  
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const recordedAudioRef = useRef<HTMLAudioElement>(null)
 
   // Filter prompts based on subscription status
   const availablePrompts = samplePrompts.filter((prompt, index) => {
@@ -112,22 +122,126 @@ const QATraining = () => {
     speechSynthesis.cancel()
   }
 
+  // Pronunciation Trainer Functions
+  const startRecording = async (type: 'officer' | 'driver') => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+      
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data)
+      }
+      
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' })
+        const audioUrl = URL.createObjectURL(audioBlob)
+        setRecordedAudio(audioUrl)
+        
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop())
+      }
+      
+      setIsRecording(true)
+      setRecordingType(type)
+      mediaRecorder.start()
+      
+      // Auto-stop after 10 seconds
+      setTimeout(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          stopRecording()
+        }
+      }, 10000)
+      
+    } catch (error) {
+      console.error('Error accessing microphone:', error)
+      alert('Please allow microphone access to use pronunciation training')
+    }
+  }
+  
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    }
+    setIsRecording(false)
+    setRecordingType(null)
+  }
+  
+  const playOriginalAudio = (text: string) => {
+    speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = 0.8
+    utterance.pitch = 1
+    speechSynthesis.speak(utterance)
+  }
+  
+  const playRecordedAudio = () => {
+    if (recordedAudio && recordedAudioRef.current) {
+      recordedAudioRef.current.src = recordedAudio
+      recordedAudioRef.current.play()
+    }
+  }
+  
+  const clearRecording = () => {
+    setRecordedAudio(null)
+    setRecordingType(null)
+  }
+
   return (
     <div className="max-w-4xl mx-auto p-8">
-      <h1 className="text-4xl font-bold text-center mb-8">🎵 DOT Practice Training</h1>
+      <h1 className="text-4xl font-bold text-center mb-8">🎵 Enhanced DOT Practice Training</h1>
       
-      {/* Big Play Button */}
-      <div className="text-center mb-8">
-        <button
-          onClick={isPlaying ? stopAll : playAll}
-          className={`w-40 h-40 rounded-full text-white font-bold shadow-lg ${
-            isPlaying ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
-          }`}
-        >
-          <div className="text-5xl mb-2">{isPlaying ? '⏹️' : '▶️'}</div>
-          <div className="text-lg">{isPlaying ? 'STOP' : 'PLAY ALL'}</div>
-        </button>
+      {/* Mode Toggle */}
+      <div className="flex justify-center mb-8">
+        <div className="bg-white p-2 rounded-xl shadow-lg">
+          <button
+            onClick={() => setShowPronunciationMode(false)}
+            className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+              !showPronunciationMode 
+                ? 'bg-blue-500 text-white shadow-md' 
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            🎵 Listen Mode
+          </button>
+          <button
+            onClick={() => setShowPronunciationMode(true)}
+            className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+              showPronunciationMode 
+                ? 'bg-green-500 text-white shadow-md' 
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            🎯 Pronunciation Mode
+          </button>
+        </div>
       </div>
+
+      {!showPronunciationMode ? (
+        <>
+          {/* Big Play Button */}
+          <div className="text-center mb-8">
+            <button
+              onClick={isPlaying ? stopAll : playAll}
+              className={`w-40 h-40 rounded-full text-white font-bold shadow-lg ${
+                isPlaying ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
+              }`}
+            >
+              <div className="text-5xl mb-2">{isPlaying ? '⏹️' : '▶️'}</div>
+              <div className="text-lg">{isPlaying ? 'STOP' : 'PLAY ALL'}</div>
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Pronunciation Trainer Header */}
+          <div className="text-center mb-8 bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-xl">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">🎯 Pronunciation Trainer</h2>
+            <p className="text-gray-600">Record yourself saying the phrases, then compare with the original!</p>
+          </div>
+        </>
+      )}
 
       {/* Progress */}
       <div className="bg-white p-4 rounded-lg shadow mb-8">
@@ -167,9 +281,60 @@ const QATraining = () => {
               </div>
             )}
           </div>
-          <p className="text-xl text-blue-900 font-medium leading-relaxed">
+          <p className="text-xl text-blue-900 font-medium leading-relaxed mb-4">
             "{currentPrompt.officer}"
           </p>
+          
+          {/* Pronunciation Controls for Officer */}
+          {showPronunciationMode && (
+            <div className="bg-white p-4 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-semibold text-blue-800">🎯 Practice Officer's Question</h4>
+                <button
+                  onClick={() => playOriginalAudio(currentPrompt.officer)}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600"
+                >
+                  🔊 Listen
+                </button>
+              </div>
+              
+              <div className="flex gap-3">
+                {!isRecording || recordingType !== 'officer' ? (
+                  <button
+                    onClick={() => startRecording('officer')}
+                    disabled={isRecording}
+                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 disabled:opacity-50"
+                  >
+                    🎤 Record Yourself
+                  </button>
+                ) : (
+                  <button
+                    onClick={stopRecording}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg animate-pulse"
+                  >
+                    ⏹️ Stop Recording
+                  </button>
+                )}
+                
+                {recordedAudio && recordingType === 'officer' && (
+                  <>
+                    <button
+                      onClick={playRecordedAudio}
+                      className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+                    >
+                      ▶️ Play My Recording
+                    </button>
+                    <button
+                      onClick={clearRecording}
+                      className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+                    >
+                      🗑️ Clear
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Driver Answer */}
@@ -190,11 +355,73 @@ const QATraining = () => {
               </div>
             )}
           </div>
-          <p className="text-xl text-green-900 font-medium leading-relaxed">
+          <p className="text-xl text-green-900 font-medium leading-relaxed mb-4">
             "{currentPrompt.driver}"
           </p>
+          
+          {/* Pronunciation Controls for Driver */}
+          {showPronunciationMode && (
+            <div className="bg-white p-4 rounded-lg border border-green-200">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-semibold text-green-800">🎯 Practice Driver's Response</h4>
+                <button
+                  onClick={() => playOriginalAudio(currentPrompt.driver)}
+                  className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600"
+                >
+                  🔊 Listen
+                </button>
+              </div>
+              
+              <div className="flex gap-3">
+                {!isRecording || recordingType !== 'driver' ? (
+                  <button
+                    onClick={() => startRecording('driver')}
+                    disabled={isRecording}
+                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 disabled:opacity-50"
+                  >
+                    🎤 Record Yourself
+                  </button>
+                ) : (
+                  <button
+                    onClick={stopRecording}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg animate-pulse"
+                  >
+                    ⏹️ Stop Recording
+                  </button>
+                )}
+                
+                {recordedAudio && recordingType === 'driver' && (
+                  <>
+                    <button
+                      onClick={playRecordedAudio}
+                      className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+                    >
+                      ▶️ Play My Recording
+                    </button>
+                    <button
+                      onClick={clearRecording}
+                      className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+                    >
+                      🗑️ Clear
+                    </button>
+                  </>
+                )}
+              </div>
+              
+              {recordedAudio && recordingType === 'driver' && (
+                <div className="mt-3 p-3 bg-green-50 rounded-lg">
+                  <p className="text-sm text-green-700">
+                    ✅ Great job! Compare your pronunciation with the original. Keep practicing to improve!
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
+      
+      {/* Hidden audio element for recorded playback */}
+      <audio ref={recordedAudioRef} style={{ display: 'none' }} />
 
       {/* Navigation Controls */}
       <div className="flex justify-between items-center mt-8">

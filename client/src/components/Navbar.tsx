@@ -59,12 +59,6 @@ const Navbar = () => {
               DOT Practice
             </Link>
             <Link 
-              to="/ai-coach" 
-              className={`nav-link ${isActive('/ai-coach') ? 'active' : ''}`}
-            >
-              AI Coach
-            </Link>
-            <Link 
               to="/settings" 
               className={`nav-link ${isActive('/settings') ? 'active' : ''}`}
             >

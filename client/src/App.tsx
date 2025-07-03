@@ -3,8 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import Home from './pages/Home'
 import QATraining from './pages/QATraining'
-import AICoach from './pages/AICoach'
-import AICoachAvatar from './pages/AICoachAvatar'
 import Settings from './pages/Settings'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
@@ -57,18 +55,6 @@ function App() {
             </div>
           } />
           
-          <Route path="/ai-coach" element={
-            <div className="min-h-screen">
-              <AICoach />
-            </div>
-          } />
-          
-          <Route path="/ai-coach-simple" element={
-            <div className="min-h-screen bg-gray-50">
-              <Navbar />
-              <AICoach />
-            </div>
-          } />
           
           <Route path="/settings" element={
             <ProtectedRoute>
