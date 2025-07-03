@@ -17,7 +17,7 @@ const AICoach = () => {
     const recognition = new (window as any).webkitSpeechRecognition()
     recognitionRef.current = recognition
     
-    recognition.continuous = true
+    recognition.continuous = false
     recognition.lang = 'en-US'
     
     recognition.onstart = () => {
