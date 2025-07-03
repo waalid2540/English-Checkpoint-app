@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import Home from './pages/Home'
 import QATraining from './pages/QATraining'
 import PronunciationTrainer from './pages/PronunciationTrainer'
+import SpeedQuiz from './pages/SpeedQuiz'
 import Settings from './pages/Settings'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
@@ -60,6 +61,13 @@ function App() {
             <div className="min-h-screen">
               <Navbar />
               <PronunciationTrainer />
+            </div>
+          } />
+          
+          <Route path="/speed-quiz" element={
+            <div className="min-h-screen">
+              <Navbar />
+              <SpeedQuiz />
             </div>
           } />
           

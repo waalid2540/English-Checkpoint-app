@@ -65,6 +65,12 @@ const Navbar = () => {
               🎯 Pronunciation
             </Link>
             <Link 
+              to="/speed-quiz" 
+              className={`nav-link ${isActive('/speed-quiz') ? 'active' : ''}`}
+            >
+              ⚡ Speed Quiz
+            </Link>
+            <Link 
               to="/settings" 
               className={`nav-link ${isActive('/settings') ? 'active' : ''}`}
             >
