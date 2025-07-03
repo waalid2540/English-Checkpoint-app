@@ -38,7 +38,7 @@ const AICoach = () => {
     // Add welcome message
     const welcomeMsg: Message = {
       id: 'welcome',
-      text: "Hello! I'm your English coach for DOT checkpoints. Say something like 'Good morning officer' to start practicing!",
+      text: "Good morning! I'm a DOT officer. Let's practice your checkpoint conversation. Start by greeting me!",
       sender: 'coach',
       timestamp: new Date()
     }
@@ -53,97 +53,147 @@ const AICoach = () => {
     }, 3000)
   }
 
-  // Voice Recognition Setup
+  // OpenAI Whisper Voice Recognition
   const startListening = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    
-    if (!SpeechRecognition) {
-      alert('Voice recognition not supported. Please use Chrome or Safari.')
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('Voice recording not supported. Please use Chrome or Safari.')
       return
     }
 
-    const recognition = new SpeechRecognition()
-    recognitionRef.current = recognition
-    
-    recognition.continuous = false
-    recognition.interimResults = false
-    recognition.lang = 'en-US'
-    recognition.maxAlternatives = 1
+    setIsListening(true)
+    console.log('🎤 Starting OpenAI Whisper recording...')
 
-    recognition.onstart = () => {
-      setIsListening(true)
-      console.log('🎤 Listening started...')
-    }
-
-    recognition.onresult = async (event: any) => {
-      const transcript = event.results[0][0].transcript.trim()
-      console.log('📝 User said:', transcript)
-      
-      if (transcript.length > 2) {
-        setIsListening(false)
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        const mediaRecorder = new MediaRecorder(stream)
+        const audioChunks: Blob[] = []
         
-        // Add user message
-        const userMsg: Message = {
-          id: Date.now().toString(),
-          text: transcript,
-          sender: 'user',
-          timestamp: new Date()
+        recognitionRef.current = mediaRecorder
+
+        mediaRecorder.ondataavailable = (event) => {
+          audioChunks.push(event.data)
         }
-        setMessages(prev => [...prev, userMsg])
-        
-        // Get AI coaching response
-        await getCoachingResponse(transcript)
-      }
-    }
 
-    recognition.onerror = (event: any) => {
-      console.error('🚫 Speech recognition error:', event.error)
-      setIsListening(false)
-      
-      if (event.error === 'not-allowed') {
-        alert('🎤 Please allow microphone access to use voice features')
-      } else if (event.error === 'network') {
-        alert('🌐 Network error. Please check your internet connection.')
-      } else {
-        // Auto-retry on other errors
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/wav' })
+          
+          // Convert to transcript using OpenAI Whisper
+          const transcript = await transcribeWithWhisper(audioBlob)
+          
+          if (transcript && transcript.length > 2) {
+            // Add user message
+            const userMsg: Message = {
+              id: Date.now().toString(),
+              text: transcript,
+              sender: 'user',
+              timestamp: new Date()
+            }
+            setMessages(prev => [...prev, userMsg])
+            
+            // Get AI coaching response
+            await getCoachingResponse(transcript)
+          }
+          
+          // Clean up
+          stream.getTracks().forEach(track => track.stop())
+          setIsListening(false)
+          
+          // Continue conversation flow
+          setTimeout(() => {
+            if (isStarted && !isSpeaking) {
+              startListening()
+            }
+          }, 500)
+        }
+
+        mediaRecorder.onerror = (event) => {
+          console.error('🚫 Recording error:', event)
+          setIsListening(false)
+          stream.getTracks().forEach(track => track.stop())
+          
+          // Auto-retry on errors
+          setTimeout(() => {
+            if (isStarted) startListening()
+          }, 2000)
+        }
+
+        // Record for 5 seconds at a time
+        mediaRecorder.start()
         setTimeout(() => {
-          if (isStarted) startListening()
-        }, 2000)
-      }
-    }
-
-    recognition.onend = () => {
-      setIsListening(false)
-      console.log('🛑 Speech recognition ended')
-    }
-
-    recognition.start()
+          if (mediaRecorder.state === 'recording') {
+            mediaRecorder.stop()
+          }
+        }, 5000)
+      })
+      .catch(error => {
+        console.error('🎤 Microphone access error:', error)
+        setIsListening(false)
+        alert('🎤 Please allow microphone access to use voice features')
+      })
   }
 
-  // Get AI coaching response with DOT focus
+  // OpenAI Whisper transcription
+  const transcribeWithWhisper = async (audioBlob: Blob): Promise<string> => {
+    try {
+      const formData = new FormData()
+      formData.append('file', audioBlob, 'audio.wav')
+      formData.append('model', 'whisper-1')
+      formData.append('language', 'en')
+
+      const response = await axios.post(`${API_BASE_URL}/api/ai/transcribe`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        timeout: 10000
+      })
+
+      const transcript = response.data.text?.trim() || ''
+      console.log('📝 Whisper transcript:', transcript)
+      return transcript
+      
+    } catch (error) {
+      console.error('❌ Whisper transcription error:', error)
+      return ''
+    }
+  }
+
+  // Get AI coaching response with conversation flow
   const getCoachingResponse = async (userText: string) => {
     setIsProcessing(true)
     
     try {
+      // Build conversation history for context
+      const conversationHistory = messages.map(msg => ({
+        role: msg.sender === 'user' ? 'user' : 'assistant',
+        content: msg.text
+      }))
+
       const systemPrompt = `You are a professional English coach helping truck drivers practice DOT checkpoint conversations. 
 
-IMPORTANT RULES:
-1. Always correct grammar mistakes kindly
-2. Provide the correct way to say things
-3. Give realistic officer responses
-4. Keep responses under 40 words
-5. Be encouraging and helpful
-6. Focus on practical trucking English
+CONVERSATION FLOW RULES:
+1. Keep the conversation flowing naturally - act like a real DOT officer
+2. Ask follow-up questions to continue the conversation
+3. Correct grammar mistakes kindly and give the proper way to say it
+4. Give realistic officer responses and questions
+5. Keep responses under 50 words
+6. Be encouraging but maintain the checkpoint scenario
 
-Example format:
-"Good! Say: 'Good morning, officer. How can I help you?' - Officer might respond: 'License and registration, please.'"
+DOT CHECKPOINT CONVERSATION FLOW:
+- Start: "Good morning, officer" → "Good morning. License and registration please"
+- Documents: "Here are my documents" → "Thank you. What are you hauling today?"
+- Cargo: "I'm carrying freight" → "Where are you headed?"
+- Destination: "I'm going to Chicago" → "How long have you been driving?"
+- Experience: "5 years" → "Any issues with your truck today?"
+- Condition: "Everything is good" → "Alright, drive safe. Have a good day"
 
-Context: This is DOT checkpoint practice for truck drivers learning English.`
+KEEP THE CONVERSATION GOING - Don't just give corrections, respond as a DOT officer would!`
 
       const response = await axios.post(`${API_BASE_URL}/api/ai/chat`, {
         message: userText,
         systemPrompt: systemPrompt,
-        language: selectedLanguage
+        language: selectedLanguage,
+        conversationHistory: conversationHistory,
+        enhancedMode: true
       }, {
         timeout: 15000
       })
@@ -164,12 +214,12 @@ Context: This is DOT checkpoint practice for truck drivers learning English.`
       // Speak the response
       await speakText(coachResponse)
       
-      // Continue listening after AI finishes speaking
+      // Continue listening after AI finishes speaking (improved flow)
       setTimeout(() => {
-        if (isStarted && !isListening) {
+        if (isStarted && !isListening && !isSpeaking) {
           startListening()
         }
-      }, 1000)
+      }, 800)
       
     } catch (error) {
       console.error('❌ AI Error:', error)
@@ -188,8 +238,10 @@ Context: This is DOT checkpoint practice for truck drivers learning English.`
       
       // Continue listening
       setTimeout(() => {
-        if (isStarted) startListening()
-      }, 2000)
+        if (isStarted && !isListening) {
+          startListening()
+        }
+      }, 1500)
     }
   }
 
@@ -246,9 +298,19 @@ Context: This is DOT checkpoint practice for truck drivers learning English.`
     setIsSpeaking(false)
     setIsProcessing(false)
     
+    // Stop MediaRecorder if it exists
     if (recognitionRef.current) {
-      recognitionRef.current.stop()
+      if (recognitionRef.current.state === 'recording') {
+        recognitionRef.current.stop()
+      }
     }
+    
+    // Stop all audio streams
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        stream.getTracks().forEach(track => track.stop())
+      })
+      .catch(() => {}) // Ignore errors
     
     speechSynthesis.cancel()
   }

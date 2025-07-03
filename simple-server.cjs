@@ -4,6 +4,7 @@ const { OpenAI } = require('openai');
 const gtts = require('gtts');
 const fs = require('fs');
 const path = require('path');
+const fileUpload = require('express-fileupload');
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -27,6 +28,13 @@ app.use(cors({
 // Parse JSON for most routes, but not for Stripe webhook
 app.use('/webhook/stripe', express.raw({type: 'application/json'}));
 app.use(express.json());
+
+// File upload middleware for audio files
+app.use(fileUpload({
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  abortOnLimit: true,
+  createParentPath: true
+}));
 
 // Debug environment variables
 console.log('🔧 Environment Check:');
@@ -389,6 +397,47 @@ app.post('/api/ai/translate', async (req, res) => {
     });
   }
 });
+
+// OpenAI Whisper transcription endpoint
+app.post('/api/ai/transcribe', async (req, res) => {
+  try {
+    console.log('🎤 OpenAI Whisper transcription request received')
+    
+    if (!req.files || !req.files.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'Audio file is required'
+      })
+    }
+
+    const audioFile = req.files.file
+    console.log('📂 Audio file received:', audioFile.name, audioFile.size, 'bytes')
+
+    // Create transcription with OpenAI Whisper
+    const transcription = await openai.audio.transcriptions.create({
+      file: audioFile,
+      model: 'whisper-1',
+      language: 'en',
+      response_format: 'text'
+    })
+
+    const transcriptText = transcription.trim()
+    console.log('✅ Whisper transcription:', transcriptText)
+
+    res.json({
+      success: true,
+      text: transcriptText
+    })
+
+  } catch (error) {
+    console.error('❌ Whisper transcription error:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      text: ''
+    })
+  }
+})
 
 // OpenAI Text-to-Speech endpoint (replacing gTTS)
 app.post('/api/ai/text-to-speech', async (req, res) => {
