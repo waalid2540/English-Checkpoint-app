@@ -58,10 +58,10 @@ const Home = () => {
               🚔 Start DOT Practice {!user && '(Free Trial)'}
             </FeatureAccess>
             <Link
-              to="/settings"
+              to="/pronunciation-trainer"
               className="glass-effect text-white font-semibold py-4 px-8 rounded-xl hover:bg-white/20 transition-all duration-200 cursor-pointer text-center"
             >
-              ⚙️ Settings & Profile
+              🎯 Pronunciation Trainer
             </Link>
           </div>
         </div>
@@ -78,51 +78,82 @@ const Home = () => {
           Everything You Need to <span className="gradient-text">Succeed</span>
         </h2>
         
-        <div className="grid md:grid-cols-1 gap-8 max-w-2xl mx-auto">
-          {/* Enhanced DOT Training Feature */}
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* DOT Practice Training */}
           <FeatureAccess 
             featureName="DOT Practice Training"
             targetPath="/qa-training"
             className="card-feature group cursor-pointer"
           >
             <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">🚔</div>
-            <h3 className="text-3xl font-bold mb-4 text-gray-800">Enhanced DOT Practice Training</h3>
+            <h3 className="text-2xl font-bold mb-4 text-gray-800">DOT Practice Training</h3>
             <p className="text-gray-600 mb-6 text-lg">
-              Master English for truck driving with 200+ real DOT scenarios. Now featuring:
-              pronunciation training, speed quizzes, offline mode, and multi-language support.
+              Master 200+ real DOT checkpoint scenarios with professional voice-over. 
+              Learn proper responses to officer questions and build confidence.
             </p>
             
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-3 mb-6">
               <div className="bg-blue-50 p-3 rounded-lg">
-                <div className="text-blue-600 font-semibold text-sm">🎯 Pronunciation Trainer</div>
-                <div className="text-xs text-gray-600">Record & compare your voice</div>
+                <div className="text-blue-600 font-semibold text-sm">📚 200+ Questions</div>
+                <div className="text-xs text-gray-600">Real scenarios</div>
               </div>
               <div className="bg-green-50 p-3 rounded-lg">
-                <div className="text-green-600 font-semibold text-sm">⚡ Speed Quiz Mode</div>
-                <div className="text-xs text-gray-600">Quick reaction training</div>
-              </div>
-              <div className="bg-purple-50 p-3 rounded-lg">
-                <div className="text-purple-600 font-semibold text-sm">📱 Offline Mode</div>
-                <div className="text-xs text-gray-600">Practice without internet</div>
-              </div>
-              <div className="bg-orange-50 p-3 rounded-lg">
-                <div className="text-orange-600 font-semibold text-sm">🌍 Multi-Language</div>
-                <div className="text-xs text-gray-600">Somali, Arabic, Spanish</div>
+                <div className="text-green-600 font-semibold text-sm">🔊 Audio Training</div>
+                <div className="text-xs text-gray-600">Professional voice</div>
               </div>
             </div>
             
             {!user && (
               <div className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 px-4 py-2 rounded-lg mb-4 text-sm font-semibold border border-green-200">
-                ✨ Sign up for FREE - Get 10 questions + all new features!
+                ✨ Sign up for FREE - Get 10 questions!
               </div>
             )}
-            <div className="flex items-center text-blue-600 font-semibold group-hover:text-blue-700 text-lg">
-              {user ? 'Continue Enhanced Training' : 'Get Free Access'}
+            <div className="flex items-center text-blue-600 font-semibold group-hover:text-blue-700">
+              {user ? 'Continue Training' : 'Get Free Access'}
               <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>
           </FeatureAccess>
+
+          {/* Amazing Pronunciation Trainer */}
+          <Link 
+            to="/pronunciation-trainer"
+            className="card-feature group cursor-pointer"
+          >
+            <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">🎯</div>
+            <h3 className="text-2xl font-bold mb-4 text-gray-800">Pronunciation Trainer</h3>
+            <p className="text-gray-600 mb-6 text-lg">
+              Perfect your English pronunciation with our advanced trainer. Record yourself, 
+              compare with natives, and master 5 essential categories.
+            </p>
+            
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="bg-red-50 p-3 rounded-lg">
+                <div className="text-red-600 font-semibold text-sm">🎤 Voice Recording</div>
+                <div className="text-xs text-gray-600">Record & compare</div>
+              </div>
+              <div className="bg-purple-50 p-3 rounded-lg">
+                <div className="text-purple-600 font-semibold text-sm">🚨 5 Categories</div>
+                <div className="text-xs text-gray-600">DOT, Emergency, etc.</div>
+              </div>
+              <div className="bg-orange-50 p-3 rounded-lg">
+                <div className="text-orange-600 font-semibold text-sm">🏆 Progress Tracking</div>
+                <div className="text-xs text-gray-600">Points & streaks</div>
+              </div>
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="text-blue-600 font-semibold text-sm">📱 Mobile Perfect</div>
+                <div className="text-xs text-gray-600">Works everywhere</div>
+              </div>
+            </div>
+            
+            <div className="flex items-center text-purple-600 font-semibold group-hover:text-purple-700">
+              Start Pronunciation Training
+              <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </Link>
         </div>
       </section>
 

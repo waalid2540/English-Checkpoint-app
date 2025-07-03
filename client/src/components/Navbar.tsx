@@ -59,6 +59,12 @@ const Navbar = () => {
               DOT Practice
             </Link>
             <Link 
+              to="/pronunciation-trainer" 
+              className={`nav-link ${isActive('/pronunciation-trainer') ? 'active' : ''}`}
+            >
+              🎯 Pronunciation
+            </Link>
+            <Link 
               to="/settings" 
               className={`nav-link ${isActive('/settings') ? 'active' : ''}`}
             >
