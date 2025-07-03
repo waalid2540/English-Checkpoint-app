@@ -34,6 +34,8 @@ const AICoach = () => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [selectedVoice, setSelectedVoice] = useState('alloy')
   const [voiceSpeed, setVoiceSpeed] = useState(0.8)
+  const [selectedLanguage, setSelectedLanguage] = useState('en')
+  const [continuousMode, setContinuousMode] = useState(false)
   const [showUpgradePopup, setShowUpgradePopup] = useState(false)
   const [upgradeTrigger, setUpgradeTrigger] = useState<'daily_limit' | 'dot_questions' | 'premium_feature'>('daily_limit')
   
@@ -49,6 +51,15 @@ const AICoach = () => {
     { code: 'nova', name: 'Nova', flag: '♀️' },
     { code: 'onyx', name: 'Onyx', flag: '🔥' },
     { code: 'shimmer', name: 'Shimmer', flag: '✨' }
+  ]
+
+  const languages = [
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'so', name: 'Somali', flag: '🇸🇴' },
+    { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
+    { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+    { code: 'fr', name: 'French', flag: '🇫🇷' },
+    { code: 'de', name: 'German', flag: '🇩🇪' }
   ]
 
   // Redirect to signup if not authenticated
@@ -78,18 +89,31 @@ const AICoach = () => {
     )
   }
 
-  // Simple and reliable voice recognition
-  const startListening = () => {
+  // Continuous voice conversation
+  const startContinuousConversation = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       alert('Speech recognition not supported. Please use Chrome browser.')
       return
     }
 
+    setContinuousMode(true)
+    startListening()
+  }
+
+  const stopContinuousConversation = () => {
+    setContinuousMode(false)
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+    }
+    setIsListening(false)
+  }
+
+  const startListening = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     const recognition = new SpeechRecognition()
     recognitionRef.current = recognition
 
-    recognition.continuous = false
+    recognition.continuous = true
     recognition.interimResults = false
     recognition.lang = 'en-US'
 
@@ -98,49 +122,50 @@ const AICoach = () => {
     }
 
     recognition.onresult = async (event: any) => {
-      const transcript = event.results[0][0].transcript
-      setIsListening(false)
-      
-      if (transcript.trim()) {
-        const userMessage: Message = {
-          id: Date.now().toString(),
-          text: transcript,
-          sender: 'user',
-          timestamp: new Date()
-        }
-        setMessages(prev => [...prev, userMessage])
+      const lastResult = event.results[event.results.length - 1]
+      if (lastResult.isFinal) {
+        const transcript = lastResult[0].transcript.trim()
         
-        // Get AI response
-        const aiReply = await getAIResponse(transcript)
-        const coachMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          text: aiReply,
-          sender: 'coach',
-          timestamp: new Date()
+        if (transcript.length > 2) {
+          const userMessage: Message = {
+            id: Date.now().toString(),
+            text: transcript,
+            sender: 'user',
+            timestamp: new Date()
+          }
+          setMessages(prev => [...prev, userMessage])
+          
+          // Get AI response with translation
+          const aiReply = await getAIResponse(transcript)
+          const coachMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            text: aiReply,
+            sender: 'coach',
+            timestamp: new Date()
+          }
+          setMessages(prev => [...prev, coachMessage])
+          
+          // Speak the response
+          speakText(aiReply)
         }
-        setMessages(prev => [...prev, coachMessage])
-        
-        // Speak the response
-        speakText(aiReply)
       }
     }
 
     recognition.onerror = () => {
-      setIsListening(false)
+      if (continuousMode) {
+        setTimeout(() => recognition.start(), 100)
+      }
     }
 
     recognition.onend = () => {
-      setIsListening(false)
+      if (continuousMode) {
+        setTimeout(() => recognition.start(), 100)
+      } else {
+        setIsListening(false)
+      }
     }
 
     recognition.start()
-  }
-
-  const stopListening = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-    }
-    setIsListening(false)
   }
 
   // Clean OpenAI TTS implementation
@@ -189,7 +214,7 @@ const AICoach = () => {
     }
   }
 
-  // Get AI response
+  // Get AI response with translation support
   const getAIResponse = async (userMessage: string): Promise<string> => {
     setIsProcessing(true)
     
@@ -197,7 +222,8 @@ const AICoach = () => {
       const response = await axios.post(`${API_BASE_URL}/api/ai/chat`, {
         message: userMessage,
         mode: 'casual',
-        language: 'en'
+        language: selectedLanguage,
+        systemPrompt: `You are an English coach for truck drivers. Always respond in both the user's selected language (${selectedLanguage}) AND English. Format: "[Response in ${languages.find(l => l.code === selectedLanguage)?.name || 'selected language'}] 🔄 English: [English translation]"`
       }, {
         timeout: 15000
       })
@@ -238,6 +264,15 @@ const AICoach = () => {
     speakText(aiReply)
   }
 
+  // Auto-start conversation when component loads
+  useEffect(() => {
+    if (!loading && user && !hasReachedLimit) {
+      setTimeout(() => {
+        startContinuousConversation()
+      }, 2000)
+    }
+  }, [loading, user, hasReachedLimit])
+
   return (
     <div className="h-screen bg-white flex flex-col">
       {/* Header */}
@@ -255,8 +290,20 @@ const AICoach = () => {
               </div>
             </div>
             
-            {/* Voice Settings */}
-            <div className="flex items-center space-x-2">
+            {/* Voice & Language Settings */}
+            <div className="flex items-center space-x-1">
+              <select
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value)}
+                className="text-xs bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-lg px-2 py-1"
+              >
+                {languages.map((lang) => (
+                  <option key={lang.code} value={lang.code} className="text-black">
+                    {lang.flag} {lang.name}
+                  </option>
+                ))}
+              </select>
+              
               <select
                 value={selectedVoice}
                 onChange={(e) => setSelectedVoice(e.target.value)}
@@ -326,13 +373,13 @@ const AICoach = () => {
       <div className="bg-white border-t p-4">
         <div className="flex items-center space-x-3">
           <button
-            onClick={isListening ? stopListening : startListening}
+            onClick={continuousMode ? stopContinuousConversation : startContinuousConversation}
             disabled={isProcessing || isSpeaking}
-            className={isListening 
+            className={continuousMode 
               ? 'px-6 py-3 bg-red-500 text-white rounded-xl font-semibold' 
               : 'px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600'}
           >
-            {isListening ? '⏹️ Stop' : '🎤 Speak'}
+            {continuousMode ? '⏹️ Stop Chat' : '🎤 Start Chat'}
           </button>
           
           <input
