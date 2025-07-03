@@ -41,7 +41,7 @@ const AICoach = () => {
         try {
           const response = await axios.post(`${API_BASE_URL}/api/ai/chat`, {
             message: text,
-            systemPrompt: "You are a helpful English coach for truck drivers. Keep responses under 30 words and be encouraging."
+            systemPrompt: "You are an English coach for truck drivers. Respond ONLY in English. Help them practice English for trucking work. Keep responses under 25 words. Be encouraging and focus on English learning."
           })
           
           const aiText = response.data.reply || "Great! Keep practicing!"
