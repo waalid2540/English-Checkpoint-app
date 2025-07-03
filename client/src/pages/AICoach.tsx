@@ -20,9 +20,11 @@ const AICoach = () => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isStarted, setIsStarted] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState('en')
+  const [conversationActive, setConversationActive] = useState(false)
   
   const recognitionRef = useRef<any>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
+  const conversationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const languages = [
     { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -34,130 +36,128 @@ const AICoach = () => {
   // Start voice conversation
   const startConversation = () => {
     setIsStarted(true)
+    setConversationActive(true)
     
     // Add welcome message
     const welcomeMsg: Message = {
       id: 'welcome',
-      text: "Good morning! I'm a DOT officer. Let's practice your checkpoint conversation. Start by greeting me!",
+      text: "Good morning! I'm a DOT officer conducting a routine inspection. Please approach my window and greet me to begin.",
       sender: 'coach',
       timestamp: new Date()
     }
     setMessages([welcomeMsg])
     
-    // Speak welcome message
-    speakText(welcomeMsg.text)
-    
-    // Start listening after welcome
-    setTimeout(() => {
-      startListening()
-    }, 3000)
+    // Speak welcome message and start continuous listening
+    speakText(welcomeMsg.text).then(() => {
+      startContinuousListening()
+    })
   }
 
-  // OpenAI Whisper Voice Recognition
-  const startListening = () => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      alert('Voice recording not supported. Please use Chrome or Safari.')
+  // Continuous listening system
+  const startContinuousListening = () => {
+    if (!conversationActive) return
+    
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    
+    if (!SpeechRecognition) {
+      console.error('Speech recognition not supported')
       return
     }
 
-    setIsListening(true)
-    console.log('🎤 Starting OpenAI Whisper recording...')
+    const recognition = new SpeechRecognition()
+    recognitionRef.current = recognition
+    
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.lang = 'en-US'
+    recognition.maxAlternatives = 1
 
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => {
-        const mediaRecorder = new MediaRecorder(stream)
-        const audioChunks: Blob[] = []
-        
-        recognitionRef.current = mediaRecorder
-
-        mediaRecorder.ondataavailable = (event) => {
-          audioChunks.push(event.data)
-        }
-
-        mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/wav' })
-          
-          // Convert to transcript using OpenAI Whisper
-          const transcript = await transcribeWithWhisper(audioBlob)
-          
-          if (transcript && transcript.length > 2) {
-            // Add user message
-            const userMsg: Message = {
-              id: Date.now().toString(),
-              text: transcript,
-              sender: 'user',
-              timestamp: new Date()
-            }
-            setMessages(prev => [...prev, userMsg])
-            
-            // Get AI coaching response
-            await getCoachingResponse(transcript)
-          }
-          
-          // Clean up
-          stream.getTracks().forEach(track => track.stop())
-          setIsListening(false)
-          
-          // Continue conversation flow
-          setTimeout(() => {
-            if (isStarted && !isSpeaking) {
-              startListening()
-            }
-          }, 500)
-        }
-
-        mediaRecorder.onerror = (event) => {
-          console.error('🚫 Recording error:', event)
-          setIsListening(false)
-          stream.getTracks().forEach(track => track.stop())
-          
-          // Auto-retry on errors
-          setTimeout(() => {
-            if (isStarted) startListening()
-          }, 2000)
-        }
-
-        // Record for 5 seconds at a time
-        mediaRecorder.start()
-        setTimeout(() => {
-          if (mediaRecorder.state === 'recording') {
-            mediaRecorder.stop()
-          }
-        }, 5000)
-      })
-      .catch(error => {
-        console.error('🎤 Microphone access error:', error)
-        setIsListening(false)
-        alert('🎤 Please allow microphone access to use voice features')
-      })
-  }
-
-  // OpenAI Whisper transcription
-  const transcribeWithWhisper = async (audioBlob: Blob): Promise<string> => {
-    try {
-      const formData = new FormData()
-      formData.append('file', audioBlob, 'audio.wav')
-      formData.append('model', 'whisper-1')
-      formData.append('language', 'en')
-
-      const response = await axios.post(`${API_BASE_URL}/api/ai/transcribe`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        },
-        timeout: 10000
-      })
-
-      const transcript = response.data.text?.trim() || ''
-      console.log('📝 Whisper transcript:', transcript)
-      return transcript
-      
-    } catch (error) {
-      console.error('❌ Whisper transcription error:', error)
-      return ''
+    recognition.onstart = () => {
+      setIsListening(true)
+      console.log('🎤 Continuous listening started')
     }
+
+    recognition.onresult = (event: any) => {
+      let finalTranscript = ''
+      let interimTranscript = ''
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript
+        
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript
+        } else {
+          interimTranscript += transcript
+        }
+      }
+
+      if (finalTranscript.trim().length > 3) {
+        console.log('📝 Final transcript:', finalTranscript)
+        handleUserSpeech(finalTranscript.trim())
+      }
+    }
+
+    recognition.onerror = (event: any) => {
+      console.error('🚫 Speech recognition error:', event.error)
+      
+      if (event.error === 'not-allowed') {
+        alert('🎤 Please allow microphone access to use voice features')
+        return
+      }
+      
+      // Restart recognition after error
+      setTimeout(() => {
+        if (conversationActive && !isSpeaking) {
+          startContinuousListening()
+        }
+      }, 1000)
+    }
+
+    recognition.onend = () => {
+      console.log('🛑 Speech recognition ended')
+      setIsListening(false)
+      
+      // Restart recognition if conversation is still active
+      setTimeout(() => {
+        if (conversationActive && !isSpeaking) {
+          startContinuousListening()
+        }
+      }, 500)
+    }
+
+    recognition.start()
   }
 
-  // Get AI coaching response with conversation flow
+  // Handle user speech input
+  const handleUserSpeech = async (transcript: string) => {
+    if (!conversationActive || isSpeaking || isProcessing) return
+
+    // Stop current recognition to prevent overlap
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+    }
+
+    // Add user message
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      text: transcript,
+      sender: 'user',
+      timestamp: new Date()
+    }
+    setMessages(prev => [...prev, userMsg])
+
+    // Get AI response
+    await getCoachingResponse(transcript)
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopConversation()
+    }
+  }, [])
+
+  // Get AI coaching response with REAL conversation flow
   const getCoachingResponse = async (userText: string) => {
     setIsProcessing(true)
     
@@ -168,25 +168,27 @@ const AICoach = () => {
         content: msg.text
       }))
 
-      const systemPrompt = `You are a professional English coach helping truck drivers practice DOT checkpoint conversations. 
+      const systemPrompt = `You are a DOT officer conducting a routine truck inspection. This is a REAL conversation simulation.
 
-CONVERSATION FLOW RULES:
-1. Keep the conversation flowing naturally - act like a real DOT officer
-2. Ask follow-up questions to continue the conversation
-3. Correct grammar mistakes kindly and give the proper way to say it
-4. Give realistic officer responses and questions
-5. Keep responses under 50 words
-6. Be encouraging but maintain the checkpoint scenario
+CRITICAL RULES:
+1. Act EXACTLY like a real DOT officer - professional, direct, but friendly
+2. ALWAYS ask the next logical question to keep conversation flowing
+3. Follow the EXACT DOT checkpoint procedure step by step
+4. Keep responses SHORT (15-25 words max)
+5. Speak naturally like you're really there
 
-DOT CHECKPOINT CONVERSATION FLOW:
-- Start: "Good morning, officer" → "Good morning. License and registration please"
-- Documents: "Here are my documents" → "Thank you. What are you hauling today?"
-- Cargo: "I'm carrying freight" → "Where are you headed?"
-- Destination: "I'm going to Chicago" → "How long have you been driving?"
-- Experience: "5 years" → "Any issues with your truck today?"
-- Condition: "Everything is good" → "Alright, drive safe. Have a good day"
+MANDATORY CHECKPOINT SEQUENCE:
+1. Greeting → "Good morning. License and registration please."
+2. Documents → "Thank you. What are you hauling today?"
+3. Cargo → "Where are you headed?"
+4. Route → "How long have you been driving today?" 
+5. Hours → "Any mechanical issues with your truck?"
+6. Condition → "Alright, please step out for a quick vehicle inspection."
+7. Inspection → "Everything looks good. Drive safely."
 
-KEEP THE CONVERSATION GOING - Don't just give corrections, respond as a DOT officer would!`
+NEVER BREAK CHARACTER. You are NOT a coach - you are a DOT officer doing your job.
+ALWAYS move to the next step in the sequence.
+If they make grammar mistakes, ignore them - real officers don't correct English.`
 
       const response = await axios.post(`${API_BASE_URL}/api/ai/chat`, {
         message: userText,
@@ -195,10 +197,10 @@ KEEP THE CONVERSATION GOING - Don't just give corrections, respond as a DOT offi
         conversationHistory: conversationHistory,
         enhancedMode: true
       }, {
-        timeout: 15000
+        timeout: 10000
       })
       
-      const coachResponse = response.data.reply || "Good job! Keep practicing your English."
+      const coachResponse = response.data.reply || "License and registration, please."
       
       // Add coach message
       const coachMsg: Message = {
@@ -211,21 +213,21 @@ KEEP THE CONVERSATION GOING - Don't just give corrections, respond as a DOT offi
       
       setIsProcessing(false)
       
-      // Speak the response
+      // Speak the response and continue conversation
       await speakText(coachResponse)
       
-      // Continue listening after AI finishes speaking (improved flow)
+      // Restart continuous listening immediately after speaking
       setTimeout(() => {
-        if (isStarted && !isListening && !isSpeaking) {
-          startListening()
+        if (conversationActive) {
+          startContinuousListening()
         }
-      }, 800)
+      }, 300)
       
     } catch (error) {
       console.error('❌ AI Error:', error)
       setIsProcessing(false)
       
-      const fallbackMsg = "Sorry, I had trouble understanding. Please try again!"
+      const fallbackMsg = "I didn't catch that. Could you repeat?"
       const errorMsg: Message = {
         id: (Date.now() + 2).toString(),
         text: fallbackMsg,
@@ -236,12 +238,12 @@ KEEP THE CONVERSATION GOING - Don't just give corrections, respond as a DOT offi
       
       await speakText(fallbackMsg)
       
-      // Continue listening
+      // Continue listening even after errors
       setTimeout(() => {
-        if (isStarted && !isListening) {
-          startListening()
+        if (conversationActive) {
+          startContinuousListening()
         }
-      }, 1500)
+      }, 500)
     }
   }
 
@@ -294,25 +296,25 @@ KEEP THE CONVERSATION GOING - Don't just give corrections, respond as a DOT offi
   // Stop conversation
   const stopConversation = () => {
     setIsStarted(false)
+    setConversationActive(false)
     setIsListening(false)
     setIsSpeaking(false)
     setIsProcessing(false)
     
-    // Stop MediaRecorder if it exists
-    if (recognitionRef.current) {
-      if (recognitionRef.current.state === 'recording') {
-        recognitionRef.current.stop()
-      }
+    // Clear any timeouts
+    if (conversationTimeoutRef.current) {
+      clearTimeout(conversationTimeoutRef.current)
     }
     
-    // Stop all audio streams
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => {
-        stream.getTracks().forEach(track => track.stop())
-      })
-      .catch(() => {}) // Ignore errors
+    // Stop speech recognition
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+    }
     
+    // Stop speech synthesis
     speechSynthesis.cancel()
+    
+    console.log('🛑 Conversation stopped')
   }
 
   // Repeat last AI message
@@ -353,10 +355,11 @@ KEEP THE CONVERSATION GOING - Don't just give corrections, respond as a DOT offi
             <div>
               <h1 className="text-lg font-bold">DOT English Coach</h1>
               <p className="text-sm opacity-90">
-                {isListening ? '🎤 Listening...' : 
-                 isSpeaking ? '🗣️ Speaking...' : 
-                 isProcessing ? '🧠 Thinking...' : 
-                 isStarted ? '✅ Ready' : 'Tap Start'}
+                {isListening ? '🎤 Listening - Speak Now' : 
+                 isSpeaking ? '🗣️ Officer Speaking...' : 
+                 isProcessing ? '🧠 Processing...' : 
+                 conversationActive ? '🔄 Conversation Active' : 
+                 isStarted ? '✅ Ready to Start' : 'Tap to Begin'}
               </p>
             </div>
           </div>
@@ -381,16 +384,22 @@ KEEP THE CONVERSATION GOING - Don't just give corrections, respond as a DOT offi
         {messages.length === 0 && !isStarted && (
           <div className="text-center py-12">
             <div className="text-8xl mb-6">🚔</div>
-            <h2 className="text-2xl font-bold text-gray-700 mb-4">DOT Checkpoint Practice</h2>
-            <p className="text-gray-600 text-lg mb-6">Practice English conversations with DOT officers</p>
+            <h2 className="text-2xl font-bold text-gray-700 mb-4">REAL DOT Checkpoint Simulation</h2>
+            <p className="text-gray-600 text-lg mb-6">Have actual conversations with a DOT officer</p>
             <div className="bg-white rounded-lg p-4 text-left max-w-md mx-auto">
-              <h3 className="font-bold text-gray-800 mb-2">💡 Practice Phrases:</h3>
+              <h3 className="font-bold text-gray-800 mb-2">🚛 What You'll Practice:</h3>
               <ul className="text-sm text-gray-600 space-y-1">
-                <li>• "Good morning, officer"</li>
-                <li>• "Here is my license"</li>
-                <li>• "I'm carrying freight"</li>
-                <li>• "This is a routine inspection"</li>
+                <li>• Greeting the officer professionally</li>
+                <li>• Showing your documents</li>
+                <li>• Discussing your cargo and route</li>
+                <li>• Answering inspection questions</li>
+                <li>• Complete checkpoint conversation</li>
               </ul>
+              <div className="mt-3 p-2 bg-green-50 rounded">
+                <p className="text-xs text-green-700 font-medium">
+                  ✅ Continuous conversation - no buttons to press!
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -456,7 +465,7 @@ KEEP THE CONVERSATION GOING - Don't just give corrections, respond as a DOT offi
               onClick={startConversation}
               className="w-full py-4 bg-green-500 text-white text-lg font-bold rounded-xl shadow-lg hover:bg-green-600 transition-colors"
             >
-              🎤 START DOT PRACTICE
+🚔 START CHECKPOINT CONVERSATION
             </button>
           ) : (
             <div className="space-y-3">
@@ -468,9 +477,10 @@ KEEP THE CONVERSATION GOING - Don't just give corrections, respond as a DOT offi
                   isProcessing ? 'bg-yellow-500 animate-pulse' : 'bg-gray-300'
                 }`}></div>
                 <p className="text-sm text-gray-600">
-                  {isListening ? 'Speak now - I\'m listening!' : 
-                   isSpeaking ? 'Coach is speaking...' :
-                   isProcessing ? 'Analyzing your English...' : 'Ready for next conversation'}
+                  {isListening ? '🎤 Speak now - Officer is listening!' : 
+                   isSpeaking ? '👮‍♂️ DOT Officer is speaking...' :
+                   isProcessing ? '🧠 Officer is responding...' : 
+                   conversationActive ? '🔄 Conversation in progress' : 'Ready for conversation'}
                 </p>
               </div>
               
