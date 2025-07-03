@@ -4,183 +4,440 @@ import axios from 'axios'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://english-checkpoint-backend.onrender.com'
 
+interface Message {
+  id: string
+  text: string
+  sender: 'user' | 'coach'
+  timestamp: Date
+  correction?: string
+}
+
 const AICoach = () => {
   const { user } = useAuth()
-  const [messages, setMessages] = useState([])
+  const [messages, setMessages] = useState<Message[]>([])
   const [isListening, setIsListening] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
   const [isStarted, setIsStarted] = useState(false)
-  const recognitionRef = useRef(null)
+  const [selectedLanguage, setSelectedLanguage] = useState('en')
+  
+  const recognitionRef = useRef<any>(null)
+  const audioRef = useRef<HTMLAudioElement>(null)
 
-  const startChat = () => {
+  const languages = [
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'so', name: 'Somali', flag: '🇸🇴' },
+    { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
+    { code: 'es', name: 'Spanish', flag: '🇪🇸' }
+  ]
+
+  // Start voice conversation
+  const startConversation = () => {
     setIsStarted(true)
     
-    const recognition = new (window as any).webkitSpeechRecognition()
+    // Add welcome message
+    const welcomeMsg: Message = {
+      id: 'welcome',
+      text: "Hello! I'm your English coach for DOT checkpoints. Say something like 'Good morning officer' to start practicing!",
+      sender: 'coach',
+      timestamp: new Date()
+    }
+    setMessages([welcomeMsg])
+    
+    // Speak welcome message
+    speakText(welcomeMsg.text)
+    
+    // Start listening after welcome
+    setTimeout(() => {
+      startListening()
+    }, 3000)
+  }
+
+  // Voice Recognition Setup
+  const startListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    
+    if (!SpeechRecognition) {
+      alert('Voice recognition not supported. Please use Chrome or Safari.')
+      return
+    }
+
+    const recognition = new SpeechRecognition()
     recognitionRef.current = recognition
     
     recognition.continuous = false
+    recognition.interimResults = false
     recognition.lang = 'en-US'
-    
+    recognition.maxAlternatives = 1
+
     recognition.onstart = () => {
       setIsListening(true)
-      console.log('Voice started')
+      console.log('🎤 Listening started...')
     }
-    
-    recognition.onresult = async (event) => {
-      const text = event.results[event.results.length - 1][0].transcript.trim()
-      console.log('You said:', text)
+
+    recognition.onresult = async (event: any) => {
+      const transcript = event.results[0][0].transcript.trim()
+      console.log('📝 User said:', transcript)
       
-      if (text.length > 2) {
-        // Add user message
-        setMessages(prev => [...prev, { 
-          id: Date.now(), 
-          text: text, 
-          sender: 'user' 
-        }])
+      if (transcript.length > 2) {
+        setIsListening(false)
         
-        // Get AI response
-        try {
-          const response = await axios.post(`${API_BASE_URL}/api/ai/chat`, {
-            message: text,
-            systemPrompt: "You are an English coach for truck drivers. Respond ONLY in English. Help them practice English for trucking work. Keep responses under 25 words. Be encouraging and focus on English learning."
-          })
-          
-          const aiText = response.data.reply || "Great! Keep practicing!"
-          
-          // Add AI message
-          setMessages(prev => [...prev, { 
-            id: Date.now() + 1, 
-            text: aiText, 
-            sender: 'coach' 
-          }])
-          
-          // Speak response
-          const utterance = new SpeechSynthesisUtterance(aiText)
-          utterance.rate = 0.8
-          utterance.onend = () => {
-            // After AI speaks, restart listening for continuous conversation
-            if (isStarted && recognitionRef.current) {
-              setTimeout(() => {
-                recognitionRef.current.start()
-              }, 1000)
-            }
-          }
-          speechSynthesis.speak(utterance)
-          
-        } catch (error) {
-          console.error('Error:', error)
-          const fallback = "I'm here to help you practice English!"
-          setMessages(prev => [...prev, { 
-            id: Date.now() + 1, 
-            text: fallback, 
-            sender: 'coach' 
-          }])
-          
-          const utterance = new SpeechSynthesisUtterance(fallback)
-          utterance.onend = () => {
-            // After AI speaks, restart listening for continuous conversation
-            if (isStarted && recognitionRef.current) {
-              setTimeout(() => {
-                recognitionRef.current.start()
-              }, 1000)
-            }
-          }
-          speechSynthesis.speak(utterance)
+        // Add user message
+        const userMsg: Message = {
+          id: Date.now().toString(),
+          text: transcript,
+          sender: 'user',
+          timestamp: new Date()
         }
+        setMessages(prev => [...prev, userMsg])
+        
+        // Get AI coaching response
+        await getCoachingResponse(transcript)
       }
     }
-    
-    recognition.onerror = (event) => {
-      console.log('Speech error:', event.error)
+
+    recognition.onerror = (event: any) => {
+      console.error('🚫 Speech recognition error:', event.error)
       setIsListening(false)
+      
+      if (event.error === 'not-allowed') {
+        alert('🎤 Please allow microphone access to use voice features')
+      } else if (event.error === 'network') {
+        alert('🌐 Network error. Please check your internet connection.')
+      } else {
+        // Auto-retry on other errors
+        setTimeout(() => {
+          if (isStarted) startListening()
+        }, 2000)
+      }
     }
-    
+
     recognition.onend = () => {
       setIsListening(false)
-      // Don't auto-restart - wait for AI to finish speaking first
+      console.log('🛑 Speech recognition ended')
     }
-    
+
     recognition.start()
   }
 
-  const stopChat = () => {
+  // Get AI coaching response with DOT focus
+  const getCoachingResponse = async (userText: string) => {
+    setIsProcessing(true)
+    
+    try {
+      const systemPrompt = `You are a professional English coach helping truck drivers practice DOT checkpoint conversations. 
+
+IMPORTANT RULES:
+1. Always correct grammar mistakes kindly
+2. Provide the correct way to say things
+3. Give realistic officer responses
+4. Keep responses under 40 words
+5. Be encouraging and helpful
+6. Focus on practical trucking English
+
+Example format:
+"Good! Say: 'Good morning, officer. How can I help you?' - Officer might respond: 'License and registration, please.'"
+
+Context: This is DOT checkpoint practice for truck drivers learning English.`
+
+      const response = await axios.post(`${API_BASE_URL}/api/ai/chat`, {
+        message: userText,
+        systemPrompt: systemPrompt,
+        language: selectedLanguage
+      }, {
+        timeout: 15000
+      })
+      
+      const coachResponse = response.data.reply || "Good job! Keep practicing your English."
+      
+      // Add coach message
+      const coachMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        text: coachResponse,
+        sender: 'coach',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, coachMsg])
+      
+      setIsProcessing(false)
+      
+      // Speak the response
+      await speakText(coachResponse)
+      
+      // Continue listening after AI finishes speaking
+      setTimeout(() => {
+        if (isStarted && !isListening) {
+          startListening()
+        }
+      }, 1000)
+      
+    } catch (error) {
+      console.error('❌ AI Error:', error)
+      setIsProcessing(false)
+      
+      const fallbackMsg = "Sorry, I had trouble understanding. Please try again!"
+      const errorMsg: Message = {
+        id: (Date.now() + 2).toString(),
+        text: fallbackMsg,
+        sender: 'coach',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMsg])
+      
+      await speakText(fallbackMsg)
+      
+      // Continue listening
+      setTimeout(() => {
+        if (isStarted) startListening()
+      }, 2000)
+    }
+  }
+
+  // Text-to-Speech with fallback
+  const speakText = async (text: string): Promise<void> => {
+    return new Promise((resolve) => {
+      setIsSpeaking(true)
+      
+      try {
+        // Try ElevenLabs or OpenAI TTS first (you can add this later)
+        // For now, use reliable browser TTS
+        
+        const utterance = new SpeechSynthesisUtterance(text)
+        utterance.rate = 0.8
+        utterance.pitch = 1
+        utterance.volume = 1
+        
+        // Use best available English voice
+        const voices = speechSynthesis.getVoices()
+        const englishVoice = voices.find(voice => 
+          voice.lang.startsWith('en') && 
+          (voice.name.includes('Google') || voice.name.includes('Microsoft') || voice.name.includes('Alex'))
+        ) || voices.find(voice => voice.lang.startsWith('en'))
+        
+        if (englishVoice) {
+          utterance.voice = englishVoice
+        }
+        
+        utterance.onend = () => {
+          setIsSpeaking(false)
+          resolve()
+        }
+        
+        utterance.onerror = () => {
+          console.error('🔊 TTS Error')
+          setIsSpeaking(false)
+          resolve()
+        }
+        
+        speechSynthesis.speak(utterance)
+        
+      } catch (error) {
+        console.error('🔊 Speech synthesis error:', error)
+        setIsSpeaking(false)
+        resolve()
+      }
+    })
+  }
+
+  // Stop conversation
+  const stopConversation = () => {
     setIsStarted(false)
     setIsListening(false)
+    setIsSpeaking(false)
+    setIsProcessing(false)
+    
     if (recognitionRef.current) {
       recognitionRef.current.stop()
     }
+    
     speechSynthesis.cancel()
   }
 
+  // Repeat last AI message
+  const repeatLastMessage = () => {
+    const lastCoachMessage = messages.filter(m => m.sender === 'coach').pop()
+    if (lastCoachMessage) {
+      speakText(lastCoachMessage.text)
+    }
+  }
+
+  // Translate message
+  const translateMessage = async (text: string) => {
+    if (selectedLanguage === 'en') return
+    
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/ai/translate`, {
+        text: text,
+        targetLanguage: selectedLanguage
+      })
+      
+      if (response.data.translation) {
+        await speakText(response.data.translation)
+      }
+    } catch (error) {
+      console.error('Translation error:', error)
+    }
+  }
+
   return (
-    <div className="h-screen bg-blue-50 flex flex-col">
+    <div className="h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
       {/* Header */}
-      <div className="bg-blue-600 text-white p-6 text-center">
-        <h1 className="text-2xl font-bold">🎓 English Coach</h1>
-        <p className="text-lg mt-2">Practice English for Truck Drivers</p>
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 shadow-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+              <span className="text-xl">🚛</span>
+            </div>
+            <div>
+              <h1 className="text-lg font-bold">DOT English Coach</h1>
+              <p className="text-sm opacity-90">
+                {isListening ? '🎤 Listening...' : 
+                 isSpeaking ? '🗣️ Speaking...' : 
+                 isProcessing ? '🧠 Thinking...' : 
+                 isStarted ? '✅ Ready' : 'Tap Start'}
+              </p>
+            </div>
+          </div>
+          
+          {/* Language Selector */}
+          <select
+            value={selectedLanguage}
+            onChange={(e) => setSelectedLanguage(e.target.value)}
+            className="text-sm bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-lg px-2 py-1"
+          >
+            {languages.map((lang) => (
+              <option key={lang.code} value={lang.code} className="text-black">
+                {lang.flag} {lang.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {/* Messages */}
+      {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4">
-        {messages.length === 0 && (
+        {messages.length === 0 && !isStarted && (
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">🚛</div>
-            <h2 className="text-xl font-bold text-gray-700 mb-2">Ready to Practice!</h2>
-            <p className="text-gray-600">Tap the button below to start speaking</p>
+            <div className="text-8xl mb-6">🚔</div>
+            <h2 className="text-2xl font-bold text-gray-700 mb-4">DOT Checkpoint Practice</h2>
+            <p className="text-gray-600 text-lg mb-6">Practice English conversations with DOT officers</p>
+            <div className="bg-white rounded-lg p-4 text-left max-w-md mx-auto">
+              <h3 className="font-bold text-gray-800 mb-2">💡 Practice Phrases:</h3>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>• "Good morning, officer"</li>
+                <li>• "Here is my license"</li>
+                <li>• "I'm carrying freight"</li>
+                <li>• "This is a routine inspection"</li>
+              </ul>
+            </div>
           </div>
         )}
         
-        <div className="space-y-4">
-          {messages.map(message => (
+        <div className="space-y-4 max-w-4xl mx-auto">
+          {messages.map((message) => (
             <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-sm p-4 rounded-2xl ${
+              <div className={`max-w-sm rounded-2xl px-4 py-3 shadow-sm ${
                 message.sender === 'user' 
                   ? 'bg-blue-500 text-white' 
-                  : 'bg-white text-gray-800 shadow-lg border'
+                  : 'bg-white text-gray-800 border border-gray-200'
               }`}>
-                <p className="text-base">{message.text}</p>
+                <p className="text-sm leading-relaxed">{message.text}</p>
+                
+                {message.sender === 'coach' && (
+                  <div className="flex items-center space-x-2 mt-2">
+                    <button
+                      onClick={() => speakText(message.text)}
+                      disabled={isSpeaking}
+                      className="text-xs text-blue-500 hover:text-blue-700 font-medium"
+                    >
+                      🔊 Repeat
+                    </button>
+                    
+                    {selectedLanguage !== 'en' && (
+                      <button
+                        onClick={() => translateMessage(message.text)}
+                        disabled={isSpeaking}
+                        className="text-xs text-green-500 hover:text-green-700 font-medium"
+                      >
+                        🌍 Translate
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}
+          
+          {/* Processing Indicator */}
+          {isProcessing && (
+            <div className="flex justify-start">
+              <div className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-200">
+                <div className="flex items-center space-x-2">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-75"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-150"></div>
+                  </div>
+                  <span className="text-sm text-gray-600">Coach is thinking...</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Controls */}
-      <div className="p-6 bg-white border-t">
-        {!isStarted ? (
-          <button
-            onClick={startChat}
-            className="w-full py-6 bg-green-500 text-white text-xl font-bold rounded-2xl shadow-lg hover:bg-green-600"
-          >
-            🎤 TAP TO START SPEAKING
-          </button>
-        ) : (
-          <div className="space-y-4">
-            {/* Status */}
-            <div className="text-center">
-              <div className={`w-6 h-6 rounded-full mx-auto mb-2 ${
-                isListening ? 'bg-red-500 animate-pulse' : 'bg-gray-300'
-              }`}></div>
-              <p className="text-lg font-semibold text-gray-700">
-                {isListening ? '🎤 Listening...' : '⏸️ Ready'}
-              </p>
-              <p className="text-sm text-gray-500">Speak naturally about trucking</p>
-            </div>
-            
-            {/* Stop Button */}
+      <div className="bg-white border-t p-4">
+        <div className="max-w-4xl mx-auto">
+          {!isStarted ? (
             <button
-              onClick={stopChat}
-              className="w-full py-4 bg-red-500 text-white text-lg font-bold rounded-xl hover:bg-red-600"
+              onClick={startConversation}
+              className="w-full py-4 bg-green-500 text-white text-lg font-bold rounded-xl shadow-lg hover:bg-green-600 transition-colors"
             >
-              ⏹️ STOP CONVERSATION
+              🎤 START DOT PRACTICE
             </button>
-          </div>
-        )}
+          ) : (
+            <div className="space-y-3">
+              {/* Status Indicator */}
+              <div className="text-center">
+                <div className={`w-4 h-4 rounded-full mx-auto mb-2 ${
+                  isListening ? 'bg-red-500 animate-pulse' : 
+                  isSpeaking ? 'bg-blue-500 animate-pulse' :
+                  isProcessing ? 'bg-yellow-500 animate-pulse' : 'bg-gray-300'
+                }`}></div>
+                <p className="text-sm text-gray-600">
+                  {isListening ? 'Speak now - I\'m listening!' : 
+                   isSpeaking ? 'Coach is speaking...' :
+                   isProcessing ? 'Analyzing your English...' : 'Ready for next conversation'}
+                </p>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={repeatLastMessage}
+                  disabled={isSpeaking || messages.filter(m => m.sender === 'coach').length === 0}
+                  className="py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                >
+                  🔊 Repeat
+                </button>
+                
+                <button
+                  onClick={stopConversation}
+                  className="py-3 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600"
+                >
+                  ⏹️ Stop
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Instructions */}
-      <div className="bg-gray-100 p-4 text-center">
-        <p className="text-sm text-gray-600">
-          💡 Just speak naturally - I'll help you practice English for trucking!
+      {/* Mobile Instructions */}
+      <div className="bg-gray-100 p-3 text-center">
+        <p className="text-xs text-gray-600">
+          📱 Mobile: Allow microphone access • 🎧 Use headphones for better experience
         </p>
       </div>
     </div>
