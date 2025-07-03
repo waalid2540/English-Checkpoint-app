@@ -80,7 +80,12 @@ const AICoach = () => {
     
     recognition.onend = () => {
       if (isStarted) {
-        setTimeout(() => recognition.start(), 100)
+        // Restart listening immediately for continuous conversation
+        setTimeout(() => {
+          if (recognitionRef.current && isStarted) {
+            recognitionRef.current.start()
+          }
+        }, 500)
       }
     }
     
