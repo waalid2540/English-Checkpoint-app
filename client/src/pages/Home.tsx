@@ -78,7 +78,7 @@ const Home = () => {
           Everything You Need to <span className="gradient-text">Succeed</span>
         </h2>
         
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {/* DOT Practice Training */}
           <FeatureAccess 
             featureName="DOT Practice Training"
@@ -172,6 +172,37 @@ const Home = () => {
             
             <div className="flex items-center text-yellow-600 font-semibold group-hover:text-yellow-700">
               Start Speed Challenge
+              <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </Link>
+
+          {/* Interactive Highway Rules */}
+          <Link 
+            to="/highway-rules"
+            className="card-feature group cursor-pointer"
+          >
+            <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">🛣️</div>
+            <h3 className="text-2xl font-bold mb-4 text-gray-800">Highway Rules & Signs</h3>
+            <p className="text-gray-600 mb-6 text-lg">
+              Interactive learning for road signs and highway rules. Essential knowledge 
+              for DOT inspections and safe driving.
+            </p>
+            
+            <div className="grid grid-cols-1 gap-3 mb-6">
+              <div className="bg-green-50 p-3 rounded-lg">
+                <div className="text-green-600 font-semibold text-sm">🚧 Interactive Signs</div>
+                <div className="text-xs text-gray-600">Learn with real examples</div>
+              </div>
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="text-blue-600 font-semibold text-sm">📋 Highway Rules</div>
+                <div className="text-xs text-gray-600">DOT compliance guide</div>
+              </div>
+            </div>
+            
+            <div className="flex items-center text-green-600 font-semibold group-hover:text-green-700">
+              Start Learning Rules
               <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
