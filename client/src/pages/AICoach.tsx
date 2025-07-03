@@ -56,6 +56,14 @@ const AICoach = () => {
           // Speak response
           const utterance = new SpeechSynthesisUtterance(aiText)
           utterance.rate = 0.8
+          utterance.onend = () => {
+            // After AI speaks, restart listening for continuous conversation
+            if (isStarted && recognitionRef.current) {
+              setTimeout(() => {
+                recognitionRef.current.start()
+              }, 1000)
+            }
+          }
           speechSynthesis.speak(utterance)
           
         } catch (error) {
@@ -68,6 +76,14 @@ const AICoach = () => {
           }])
           
           const utterance = new SpeechSynthesisUtterance(fallback)
+          utterance.onend = () => {
+            // After AI speaks, restart listening for continuous conversation
+            if (isStarted && recognitionRef.current) {
+              setTimeout(() => {
+                recognitionRef.current.start()
+              }, 1000)
+            }
+          }
           speechSynthesis.speak(utterance)
         }
       }
@@ -75,18 +91,12 @@ const AICoach = () => {
     
     recognition.onerror = (event) => {
       console.log('Speech error:', event.error)
-      setTimeout(() => recognition.start(), 1000)
+      setIsListening(false)
     }
     
     recognition.onend = () => {
-      if (isStarted) {
-        // Restart listening immediately for continuous conversation
-        setTimeout(() => {
-          if (recognitionRef.current && isStarted) {
-            recognitionRef.current.start()
-          }
-        }, 500)
-      }
+      setIsListening(false)
+      // Don't auto-restart - wait for AI to finish speaking first
     }
     
     recognition.start()
