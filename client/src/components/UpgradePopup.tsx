@@ -28,11 +28,17 @@ const UpgradePopup: React.FC<UpgradePopupProps> = ({
       const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
       console.log('✅ Got auth session:', !!session)
       
+      const successUrl = `${window.location.origin}/payment-success?success=true`
+      const cancelUrl = `${window.location.origin}/?canceled=true`
+      
       const requestData = {
         priceId: 'price_1RcfPeI4BWGkGyQalTvXi4RP',
-        successUrl: `${window.location.origin}${window.location.pathname}?success=true`,
-        cancelUrl: `${window.location.origin}${window.location.pathname}?canceled=true`
+        successUrl,
+        cancelUrl
       }
+      
+      console.log('🔗 Constructed success URL:', successUrl)
+      console.log('🔗 Constructed cancel URL:', cancelUrl)
       
       console.log('📡 Making Stripe request to:', `${API_BASE_URL}/api/stripe/create-checkout-session`)
       console.log('📡 Request data:', requestData)

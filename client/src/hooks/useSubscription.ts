@@ -30,7 +30,10 @@ export const useSubscription = (): SubscriptionStatus => {
     
     // Check for payment success and start polling
     const urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.get('success') === 'true') {
+    const isPaymentSuccess = urlParams.get('success') === 'true'
+    const isPaymentSuccessPage = window.location.pathname === '/payment-success'
+    
+    if (isPaymentSuccess || isPaymentSuccessPage) {
       console.log('🎉 Payment success detected, starting subscription polling...')
       
       // Initial delay then poll every 3 seconds for up to 30 seconds

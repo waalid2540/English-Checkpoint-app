@@ -629,6 +629,8 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
     }
 
     console.log('💰 Using price ID:', finalPriceId);
+    console.log('🔗 Success URL:', successUrl);
+    console.log('🔗 Cancel URL:', cancelUrl);
 
     // Ensure we have a valid user ID for subscription tracking
     if (!userId) {
@@ -650,8 +652,8 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
           quantity: 1,
         },
       ],
-      success_url: successUrl || `${process.env.FRONTEND_URL || 'https://english-checkpoint-frontend.onrender.com'}?success=true`,
-      cancel_url: cancelUrl || `${process.env.FRONTEND_URL || 'https://english-checkpoint-frontend.onrender.com'}?canceled=true`,
+      success_url: successUrl || `${process.env.FRONTEND_URL || 'https://englishcheckpointapp.vercel.app'}?success=true`,
+      cancel_url: cancelUrl || `${process.env.FRONTEND_URL || 'https://englishcheckpointapp.vercel.app'}?canceled=true`,
       customer_email: userId ? undefined : undefined, // Will be set from user object if available
       metadata: {
         user_id: userId, // 👈 This is critical - don't use 'anonymous'

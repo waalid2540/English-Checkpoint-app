@@ -13,6 +13,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import ResendConfirmation from './pages/ResendConfirmation'
 import NotFound from './pages/NotFound'
+import PaymentSuccess from './pages/PaymentSuccess'
 import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
 import RouteGuard from './components/RouteGuard'
@@ -28,6 +29,9 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/resend-confirmation" element={<ResendConfirmation />} />
+          
+          {/* Payment success page */}
+          <Route path="/payment-success" element={<PaymentSuccess />} />
           
           {/* Public home page */}
           <Route path="/" element={
