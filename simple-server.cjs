@@ -103,7 +103,7 @@ app.get('/api/subscription/status', async (req, res) => {
     
     try {
       const { data, error: subError } = await supabase
-        .from('user_subscriptions')
+        .from('subscriptions')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no rows found
@@ -120,7 +120,7 @@ app.get('/api/subscription/status', async (req, res) => {
       // Continue with no subscription - don't fail the request
     }
 
-    console.log('📊 Subscription data:', subscription ? 'Found subscription' : 'No subscription');
+    console.log('📊 Subscription data:', subscription ? JSON.stringify(subscription, null, 2) : 'No subscription');
 
     // Calculate subscription status
     let isPremium = false;
@@ -128,11 +128,15 @@ app.get('/api/subscription/status', async (req, res) => {
     
     if (subscription) {
       const now = new Date();
+      console.log('🔍 Subscription status:', subscription.status);
+      console.log('🔍 Subscription plan:', subscription.plan_type);
       
       // Check if subscription is active
       if (subscription.status === 'active' || subscription.status === 'trialing') {
         isPremium = true;
         console.log('✅ User has premium subscription');
+      } else {
+        console.log('⚠️ Subscription status not active:', subscription.status);
       }
       
       // Calculate trial days left
@@ -727,18 +731,19 @@ app.post('/webhook/stripe', async (req, res) => {
         
         // Update user subscription status in Supabase
         const { error: updateError } = await supabase
-          .from('user_subscriptions')
+          .from('subscriptions')
           .upsert({
             user_id: userId,
             stripe_customer_id: subscription.customer,
             stripe_subscription_id: subscription.id,
             status: subscription.status,
+            plan_type: 'premium',
             current_period_start: new Date(subscription.current_period_start * 1000),
             current_period_end: new Date(subscription.current_period_end * 1000),
             trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
             updated_at: new Date()
           }, {
-            onConflict: 'user_id'
+            onConflict: 'stripe_subscription_id'
           });
         
         if (updateError) {
@@ -761,7 +766,7 @@ app.post('/webhook/stripe', async (req, res) => {
         // Activate premium features by updating subscription status
         if (invoice.subscription) {
           const { error: activateError } = await supabase
-            .from('user_subscriptions')
+            .from('subscriptions')
             .update({
               status: 'active',
               updated_at: new Date()
@@ -784,7 +789,7 @@ app.post('/webhook/stripe', async (req, res) => {
         // Deactivate premium features
         if (failedInvoice.subscription) {
           const { error: deactivateError } = await supabase
-            .from('user_subscriptions')
+            .from('subscriptions')
             .update({
               status: 'past_due',
               updated_at: new Date()
