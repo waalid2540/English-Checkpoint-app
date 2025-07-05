@@ -17,7 +17,7 @@ const UpgradePopup: React.FC<UpgradePopupProps> = ({
   const [loading, setLoading] = useState(false)
   const { user } = useAuth()
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://english-checkpoint-app.onrender.com'
 
   const handleUpgrade = async () => {
     console.log('🚀 Starting upgrade process...')
@@ -28,7 +28,7 @@ const UpgradePopup: React.FC<UpgradePopupProps> = ({
       const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
       console.log('✅ Got auth session:', !!session)
       
-      const successUrl = `${window.location.origin}/payment-success?success=true`
+      const successUrl = `${window.location.origin}/?success=true`
       const cancelUrl = `${window.location.origin}/?canceled=true`
       
       const requestData = {

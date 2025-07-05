@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useSubscription } from '../hooks/useSubscription'
 import FeatureAccess from '../components/FeatureAccess'
 import InstallPrompt from '../components/InstallPrompt'
+import PaymentDebugger from '../components/PaymentDebugger'
 
 const Home = () => {
   const { user } = useAuth()
@@ -262,6 +263,9 @@ const Home = () => {
 
       {/* Install Prompt */}
       <InstallPrompt />
+      
+      {/* Payment Debugger (only shows on localhost or with ?debug=true) */}
+      <PaymentDebugger />
     </div>
   )
 }

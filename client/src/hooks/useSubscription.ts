@@ -68,7 +68,7 @@ export const useSubscription = (): SubscriptionStatus => {
 
   const checkSubscriptionStatus = async () => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://english-checkpoint-app.onrender.com'
       
       // Get session token from Supabase
       const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
