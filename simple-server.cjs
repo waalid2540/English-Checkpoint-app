@@ -835,6 +835,55 @@ app.post('/webhook/stripe', async (req, res) => {
   res.json({received: true});
 });
 
+// EMERGENCY: Manual subscription activation endpoint
+app.post('/api/subscription/activate', async (req, res) => {
+  try {
+    console.log('🚨 MANUAL SUBSCRIPTION ACTIVATION REQUESTED');
+    const authToken = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!authToken) {
+      return res.status(401).json({ error: 'No auth token provided' });
+    }
+
+    // Verify the JWT token and get user info
+    const { data: { user }, error: authError } = await supabase.auth.getUser(authToken);
+    
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid auth token' });
+    }
+
+    console.log('👤 Manually activating premium for user:', user.email);
+
+    // Create/update subscription record
+    const { error: updateError } = await supabase
+      .from('subscriptions')
+      .upsert({
+        user_id: user.id,
+        stripe_customer_id: 'manual_' + user.id,
+        stripe_subscription_id: 'manual_' + Date.now(),
+        status: 'active',
+        plan_type: 'premium',
+        current_period_start: new Date(),
+        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        updated_at: new Date()
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (updateError) {
+      console.error('❌ Error creating manual subscription:', updateError);
+      return res.status(500).json({ error: 'Failed to activate subscription' });
+    }
+
+    console.log('✅ Manual subscription activated for:', user.email);
+    res.json({ success: true, message: 'Premium access activated' });
+
+  } catch (error) {
+    console.error('❌ Manual activation error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚛 English Checkpoint Server READY on port ${PORT}`);
   console.log(`📡 Health check: http://0.0.0.0:${PORT}/api/health`);
