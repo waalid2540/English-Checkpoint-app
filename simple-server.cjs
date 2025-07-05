@@ -13,11 +13,9 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const app = express();
 const PORT = process.env.PORT || 3003;
 
-// Configure CORS to allow Vercel frontend
+// Configure CORS to allow Render frontend
 const corsOrigin = process.env.CORS_ORIGIN || [
-  'https://englishcheckpointapp.vercel.app',
-  'https://englishcheckpoint-q5wgi9b0w-waalid2540s-projects.vercel.app',
-  'https://englishcheckpoint-32nbhlv1s-waalid2540s-projects.vercel.app',
+  'https://english-checkpoint-frontend.onrender.com',
   'http://localhost:3000',
   'http://localhost:5173'
 ];
@@ -652,8 +650,8 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
           quantity: 1,
         },
       ],
-      success_url: successUrl || `${process.env.FRONTEND_URL || 'https://englishcheckpointapp.vercel.app'}?success=true`,
-      cancel_url: cancelUrl || `${process.env.FRONTEND_URL || 'https://englishcheckpointapp.vercel.app'}?canceled=true`,
+      success_url: successUrl || `${process.env.FRONTEND_URL || 'https://english-checkpoint-frontend.onrender.com'}?success=true`,
+      cancel_url: cancelUrl || `${process.env.FRONTEND_URL || 'https://english-checkpoint-frontend.onrender.com'}?canceled=true`,
       customer_email: userId ? undefined : undefined, // Will be set from user object if available
       metadata: {
         user_id: userId, // 👈 This is critical - don't use 'anonymous'
