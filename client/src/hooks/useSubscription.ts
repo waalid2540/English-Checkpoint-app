@@ -27,6 +27,15 @@ export const useSubscription = (): SubscriptionStatus => {
     }
 
     checkSubscriptionStatus()
+    
+    // Check for payment success and refresh status
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('success') === 'true') {
+      // Delay to allow webhook processing
+      setTimeout(() => {
+        checkSubscriptionStatus()
+      }, 2000)
+    }
   }, [user])
 
   const checkSubscriptionStatus = async () => {

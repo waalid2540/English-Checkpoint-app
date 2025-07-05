@@ -16,7 +16,7 @@ const Signup = () => {
 
   // Redirect if already logged in
   if (user) {
-    return <Navigate to="/ai-coach" replace />
+    return <Navigate to="/" replace />
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useSubscription } from '../hooks/useSubscription'
 import FeatureAccess from '../components/FeatureAccess'
+import InstallPrompt from '../components/InstallPrompt'
 
 const Home = () => {
   const { user } = useAuth()
+  const subscription = useSubscription()
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
 
   useEffect(() => {
@@ -17,8 +20,13 @@ const Home = () => {
       // Clear the URL parameter
       window.history.replaceState({}, document.title, window.location.pathname)
       
-      // Hide success message after 5 seconds
-      setTimeout(() => setShowSuccessMessage(false), 5000)
+      // Force subscription status refresh
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
+      
+      // Hide success message after 8 seconds
+      setTimeout(() => setShowSuccessMessage(false), 8000)
     }
   }, [])
 
@@ -32,6 +40,7 @@ const Home = () => {
             <div>
               <h3 className="font-bold">Payment Successful!</h3>
               <p className="text-sm">You now have unlimited access to all features!</p>
+              <p className="text-xs mt-1 opacity-80">Refreshing your account...</p>
             </div>
           </div>
         </div>
@@ -250,6 +259,9 @@ const Home = () => {
           </svg>
         </FeatureAccess>
       </section>
+
+      {/* Install Prompt */}
+      <InstallPrompt />
     </div>
   )
 }

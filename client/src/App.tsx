@@ -12,8 +12,10 @@ import Signup from './pages/Signup'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import ResendConfirmation from './pages/ResendConfirmation'
+import NotFound from './pages/NotFound'
 import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
+import RouteGuard from './components/RouteGuard'
 
 function App() {
   return (
@@ -89,6 +91,9 @@ function App() {
               </div>
             </ProtectedRoute>
           } />
+          
+          {/* Catch-all route for 404 */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
     </AuthProvider>

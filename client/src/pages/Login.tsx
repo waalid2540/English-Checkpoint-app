@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 const Login = () => {
@@ -10,10 +10,14 @@ const Login = () => {
   const [message, setMessage] = useState('')
   
   const { signIn, user } = useAuth()
+  const location = useLocation()
+
+  // Get the intended destination from navigation state
+  const from = location.state?.from || '/'
 
   // Redirect if already logged in
   if (user) {
-    return <Navigate to="/ai-coach" replace />
+    return <Navigate to={from} replace />
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
