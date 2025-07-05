@@ -1,10 +1,14 @@
 const express = require('express');
 const cors = require('cors');
+const bodyParser = require('body-parser');
 const { OpenAI } = require('openai');
 const gtts = require('gtts');
 const fs = require('fs');
 const path = require('path');
 const fileUpload = require('express-fileupload');
+
+// Initialize Stripe with secret key
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -25,8 +29,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Parse JSON for most routes, but not for Stripe webhook
-app.use('/webhook/stripe', express.raw({type: 'application/json'}));
+// Use raw body ONLY for Stripe webhook to preserve signature verification
+app.use('/webhook/stripe', bodyParser.raw({ type: 'application/json' }));
 app.use(express.json());
 
 // File upload middleware for audio files
@@ -581,9 +585,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Initialize Stripe
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-
 // Stripe checkout session creation endpoint
 app.post('/api/stripe/create-checkout-session', async (req, res) => {
   try {
@@ -629,6 +630,16 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
 
     console.log('💰 Using price ID:', finalPriceId);
 
+    // Ensure we have a valid user ID for subscription tracking
+    if (!userId) {
+      console.error('❌ No authenticated user found for subscription');
+      return res.status(401).json({ 
+        error: 'Authentication required for subscription' 
+      });
+    }
+
+    console.log('👤 Creating subscription for user ID:', userId);
+
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -641,15 +652,16 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
       ],
       success_url: successUrl || `${process.env.FRONTEND_URL || 'https://english-checkpoint-frontend.onrender.com'}?success=true`,
       cancel_url: cancelUrl || `${process.env.FRONTEND_URL || 'https://english-checkpoint-frontend.onrender.com'}?canceled=true`,
+      customer_email: userId ? undefined : undefined, // Will be set from user object if available
       metadata: {
-        user_id: userId || 'anonymous',
+        user_id: userId, // 👈 This is critical - don't use 'anonymous'
         source: 'english_checkpoint_app'
       },
       subscription_data: {
         metadata: {
-          user_id: userId || 'anonymous',
+          user_id: userId, // 👈 This is critical - don't use 'anonymous'
         },
-        // No trial - immediate payment
+        trial_period_days: 7, // 7-day free trial
       },
       allow_promotion_codes: true,
     });
@@ -674,7 +686,7 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
   }
 });
 
-// Stripe webhook endpoint
+// Stripe webhook endpoint with proper signature verification
 app.post('/webhook/stripe', async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -686,29 +698,12 @@ app.post('/webhook/stripe', async (req, res) => {
 
   let event;
   try {
-    // Verify webhook signature (when using real Stripe)
-    console.log('📧 Stripe webhook received:', req.headers['stripe-signature'] ? 'with signature' : 'no signature');
-    console.log('📦 Raw body type:', typeof req.body);
-    console.log('📦 Raw body:', req.body);
-    
-    // Handle different body formats
-    let rawBody;
-    if (Buffer.isBuffer(req.body)) {
-      rawBody = req.body.toString();
-    } else if (typeof req.body === 'string') {
-      rawBody = req.body;
-    } else {
-      rawBody = JSON.stringify(req.body);
-    }
-    
-    console.log('🔄 Parsed body:', rawBody.substring(0, 200) + '...');
-    
-    // Parse the JSON
-    event = JSON.parse(rawBody);
-    console.log('🔔 Stripe event:', event.type);
+    // ✅ Secure webhook signature verification using Stripe's method
+    console.log('📧 Stripe webhook received with signature verification');
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+    console.log('🔔 Verified Stripe event:', event.type);
   } catch (err) {
-    console.log(`❌ Webhook signature verification failed:`, err.message);
-    console.log('📦 Body that failed:', req.body);
+    console.error('❌ Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
@@ -718,15 +713,17 @@ app.post('/webhook/stripe', async (req, res) => {
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
         const subscription = event.data.object;
-        console.log('📝 Subscription updated:', subscription.id);
+        console.log('📝 Subscription event:', event.type, 'for subscription:', subscription.id);
         
         // Get user ID from metadata
         const userId = subscription.metadata?.user_id;
         
         if (!userId || userId === 'anonymous') {
           console.log('⚠️ No user ID found in subscription metadata');
-          break;
+          return res.status(400).send('Missing user ID in subscription metadata');
         }
+        
+        console.log('👤 Processing subscription for user ID:', userId);
         
         // Update user subscription status in Supabase
         const { error: updateError } = await supabase
@@ -746,6 +743,7 @@ app.post('/webhook/stripe', async (req, res) => {
         
         if (updateError) {
           console.error('❌ Error updating subscription:', updateError);
+          return res.status(500).send('Failed to update subscription in database');
         } else {
           console.log('✅ Subscription status updated in database for user:', userId);
         }
@@ -772,8 +770,9 @@ app.post('/webhook/stripe', async (req, res) => {
           
           if (activateError) {
             console.error('❌ Error activating premium features:', activateError);
+            return res.status(500).send('Failed to activate premium features');
           } else {
-            console.log('✅ Premium features activated');
+            console.log('✅ Premium features activated for subscription:', invoice.subscription);
           }
         }
         break;
