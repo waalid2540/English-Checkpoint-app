@@ -695,6 +695,10 @@ app.post('/webhook/stripe', async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
   
+  console.log('📧 Webhook received at:', new Date().toISOString());
+  console.log('📧 Webhook signature present:', !!sig);
+  console.log('📧 Webhook secret configured:', !!endpointSecret);
+  
   if (!endpointSecret) {
     console.log('⚠️ Stripe webhook secret not configured');
     return res.status(400).send('Webhook secret not configured');
@@ -708,6 +712,8 @@ app.post('/webhook/stripe', async (req, res) => {
     console.log('🔔 Verified Stripe event:', event.type);
   } catch (err) {
     console.error('❌ Webhook signature verification failed:', err.message);
+    console.error('❌ Raw body type:', typeof req.body);
+    console.error('❌ Raw body length:', req.body?.length);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
@@ -722,8 +728,13 @@ app.post('/webhook/stripe', async (req, res) => {
         // Get user ID from metadata
         const userId = subscription.metadata?.user_id;
         
+        console.log('🔍 Subscription metadata:', JSON.stringify(subscription.metadata, null, 2));
+        console.log('🔍 Customer ID:', subscription.customer);
+        console.log('🔍 Subscription ID:', subscription.id);
+        
         if (!userId || userId === 'anonymous') {
           console.log('⚠️ No user ID found in subscription metadata');
+          console.log('⚠️ Available metadata keys:', Object.keys(subscription.metadata || {}));
           return res.status(400).send('Missing user ID in subscription metadata');
         }
         
