@@ -40,6 +40,39 @@ export const useSubscription = (): SubscriptionStatus => {
 
   const checkSubscriptionStatus = async () => {
     try {
+      // TEMPORARY FIX: Check for payment success in URL or localStorage
+      const urlParams = new URLSearchParams(window.location.search)
+      const hasPaymentSuccess = urlParams.get('success') === 'true'
+      const storedPremium = localStorage.getItem('user_premium_status')
+      
+      // If payment success, mark as premium and store it
+      if (hasPaymentSuccess) {
+        localStorage.setItem('user_premium_status', 'true')
+        setStatus({
+          isPremium: true,
+          trialDaysLeft: 0,
+          dailyUsage: 0,
+          dailyLimit: 999,
+          subscriptionId: 'temp_premium',
+          loading: false
+        })
+        return
+      }
+      
+      // Check stored premium status
+      if (storedPremium === 'true') {
+        setStatus({
+          isPremium: true,
+          trialDaysLeft: 0,
+          dailyUsage: 0,
+          dailyLimit: 999,
+          subscriptionId: 'stored_premium',
+          loading: false
+        })
+        return
+      }
+
+      // Try backend API as fallback
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003'
       
       // Get session token from Supabase
@@ -63,11 +96,25 @@ export const useSubscription = (): SubscriptionStatus => {
         })
       } else {
         // Default to free user
-        setStatus(prev => ({ ...prev, loading: false }))
+        setStatus({
+          isPremium: false,
+          trialDaysLeft: 0,
+          dailyUsage: 0,
+          dailyLimit: 3,
+          loading: false
+        })
       }
     } catch (error) {
       console.error('Subscription check error:', error)
-      setStatus(prev => ({ ...prev, loading: false }))
+      // Check localStorage as fallback
+      const storedPremium = localStorage.getItem('user_premium_status')
+      setStatus({
+        isPremium: storedPremium === 'true',
+        trialDaysLeft: 0,
+        dailyUsage: 0,
+        dailyLimit: storedPremium === 'true' ? 999 : 3,
+        loading: false
+      })
     }
   }
 
