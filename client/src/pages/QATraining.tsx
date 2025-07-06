@@ -123,8 +123,8 @@ const QATraining = () => {
         // Check again after officer speech
         if (!isPlayingRef.current) break
         
-        // Brief pause between officer and driver
-        await new Promise(resolve => setTimeout(resolve, 800))
+        // Longer pause between officer and driver for comprehension
+        await new Promise(resolve => setTimeout(resolve, 2000))
         
         // Play driver part
         setPlayingType('driver')
@@ -138,10 +138,10 @@ const QATraining = () => {
         
         setPlayingType(null)
         
-        // Longer pause between conversations (3 seconds)
+        // Extra long pause between conversations (4 seconds) for processing
         if (i < availablePrompts.length - 1) {
-          console.log(`⏸️ Pausing between conversations...`)
-          await new Promise(resolve => setTimeout(resolve, 3000))
+          console.log(`⏸️ Pausing between conversations for comprehension...`)
+          await new Promise(resolve => setTimeout(resolve, 4000))
         }
       }
       

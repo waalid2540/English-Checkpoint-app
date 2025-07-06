@@ -18,8 +18,23 @@ class ElevenLabsService {
     }
   }
 
+  // Add natural pauses to text for slower, clearer speech
+  private addNaturalPauses(text: string): string {
+    return text
+      // Add pause after periods and question marks
+      .replace(/\./g, '...')
+      .replace(/\?/g, '?...')
+      // Add pause after commas
+      .replace(/,/g, ',.')
+      // Add pause after "Officer:" or "Driver:" if present
+      .replace(/(Officer:|Driver:)/g, '$1...')
+  }
+
   async generateSpeech(text: string): Promise<ArrayBuffer> {
     try {
+      // Process text for educational clarity
+      const processedText = this.addNaturalPauses(text)
+      
       console.log(`🎵 ElevenLabs: Generating speech for: "${text.substring(0, 50)}..."`)
       console.log(`🔗 API URL: ${this.config.baseUrl}/text-to-speech/${this.config.voiceId}`)
       
@@ -31,12 +46,12 @@ class ElevenLabsService {
           'xi-api-key': this.config.apiKey
         },
         body: JSON.stringify({
-          text: text,
+          text: processedText,
           model_id: "eleven_monolingual_v1",
           voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.5,
-            style: 0.0,
+            stability: 0.7,        // Higher stability for clearer speech
+            similarity_boost: 0.8, // Higher similarity for consistent voice
+            style: 0.2,            // Slight style for more natural speech
             use_speaker_boost: true
           }
         })
