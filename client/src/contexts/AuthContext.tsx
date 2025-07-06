@@ -59,7 +59,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           first_name: firstName,
           last_name: lastName,
           full_name: `${firstName} ${lastName}`
-        }
+        },
+        emailRedirectTo: `${window.location.origin}/login?confirmed=true`
       }
     })
     return { data, error }

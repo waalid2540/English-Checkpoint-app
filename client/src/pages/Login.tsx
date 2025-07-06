@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -14,6 +14,14 @@ const Login = () => {
 
   // Get the intended destination from navigation state
   const from = location.state?.from || '/'
+
+  // Check for email confirmation success
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search)
+    if (searchParams.get('confirmed') === 'true') {
+      setMessage('✅ Email confirmed successfully! You can now sign in with your account.')
+    }
+  }, [location])
 
   // Redirect if already logged in
   if (user) {

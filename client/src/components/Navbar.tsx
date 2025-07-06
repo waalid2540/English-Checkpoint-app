@@ -101,52 +101,72 @@ const Navbar = () => {
             </button>
           </div>
 
-          {/* User Menu */}
+          {/* Auth Buttons / User Menu */}
           <div className="relative">
-            <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors"
-            >
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-bold">
-                  {user?.user_metadata?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || '👤'}
-                </span>
-              </div>
-              <div className="hidden md:block text-left">
-                <div className="text-sm font-medium">
-                  {user?.user_metadata?.full_name || user?.email}
-                </div>
-                <div className="text-xs text-gray-500">Truck Driver</div>
-              </div>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {/* Dropdown Menu */}
-            {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                <div className="px-4 py-2 border-b border-gray-100">
-                  <div className="text-sm font-medium text-gray-900">
-                    {user?.user_metadata?.full_name || 'User'}
-                  </div>
-                  <div className="text-xs text-gray-500">{user?.email}</div>
-                </div>
-                
-                <Link
-                  to="/settings"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                  onClick={() => setShowUserMenu(false)}
-                >
-                  ⚙️ Settings
-                </Link>
-                
+            {user ? (
+              <>
                 <button
-                  onClick={handleSignOut}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors"
                 >
-                  🚪 Sign Out
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">
+                      {user?.user_metadata?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || '👤'}
+                    </span>
+                  </div>
+                  <div className="hidden md:block text-left">
+                    <div className="text-sm font-medium">
+                      {user?.user_metadata?.full_name || user?.email}
+                    </div>
+                    <div className="text-xs text-gray-500">Truck Driver</div>
+                  </div>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
                 </button>
+
+                {/* Dropdown Menu */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <div className="text-sm font-medium text-gray-900">
+                        {user?.user_metadata?.full_name || 'User'}
+                      </div>
+                      <div className="text-xs text-gray-500">{user?.email}</div>
+                    </div>
+                    
+                    <Link
+                      to="/settings"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      ⚙️ Settings
+                    </Link>
+                    
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      🚪 Sign Out
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Sign In / Sign Up buttons for non-logged in users */
+              <div className="flex items-center space-x-3">
+                <Link
+                  to="/login"
+                  className="hidden md:block text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/signup"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 text-sm"
+                >
+                  Get Started Free
+                </Link>
               </div>
             )}
           </div>
@@ -210,6 +230,28 @@ const Navbar = () => {
               >
                 ⚙️ Settings
               </Link>
+              
+              {/* Mobile Auth Buttons for non-logged in users */}
+              {!user && (
+                <>
+                  <div className="border-t border-gray-200 mt-2 pt-2">
+                    <Link 
+                      to="/login" 
+                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      🔑 Sign In
+                    </Link>
+                    <Link 
+                      to="/signup" 
+                      className="block px-3 py-2 rounded-md text-base font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 mx-3 mt-2"
+                      onClick={() => setShowMobileMenu(false)}
+                    >
+                      🚀 Get Started Free
+                    </Link>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
