@@ -745,28 +745,7 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
 
     console.log('✅ Checkout session created:', session.id);
     console.log('✅ Checkout URL:', session.url);
-    
-    // Send activation email after checkout session creation
-    console.log('🔍 Email check - User object:', user ? 'exists' : 'null');
-    console.log('🔍 Email check - User email:', user?.email);
-    console.log('🔍 Email environment variables:');
-    console.log('  - EMAIL_USER:', process.env.EMAIL_USER ? 'set' : 'not set');
-    console.log('  - EMAIL_PASS:', process.env.EMAIL_PASS ? 'set' : 'not set');
-    
-    if (user && user.email) {
-      try {
-        console.log('📧 Attempting to send activation email to:', user.email);
-        await sendActivationEmail(user.email, user.id);
-        console.log('✅ Activation email sent successfully to:', user.email);
-      } catch (emailError) {
-        console.error('❌ Failed to send activation email:', emailError);
-        console.error('❌ Email error details:', emailError.message);
-        console.error('❌ Email error stack:', emailError.stack);
-        // Don't fail the checkout if email fails
-      }
-    } else {
-      console.log('⚠️ Cannot send email - user or email missing');
-    }
+    console.log('📧 Email will be sent after payment confirmation via webhook');
     
     res.json({
       url: session.url,
@@ -857,6 +836,25 @@ app.post('/webhook/stripe', async (req, res) => {
           return res.status(500).send('Failed to update subscription in database');
         } else {
           console.log('✅ Subscription status updated in database for user:', userId);
+          
+          // 📧 Send activation email to user
+          try {
+            // Get user email from Supabase
+            const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
+            
+            if (userError || !userData?.user?.email) {
+              console.error('❌ Could not get user email for activation email:', userError);
+            } else {
+              console.log('📧 Sending activation email to:', userData.user.email);
+              await sendActivationEmail(userData.user.email, userId);
+              console.log('✅ Activation email sent successfully');
+            }
+          } catch (emailError) {
+            console.error('❌ Failed to send activation email:', emailError);
+            console.log('🔍 Email environment check:');
+            console.log('  EMAIL_USER:', process.env.EMAIL_USER ? 'Set' : 'Missing');
+            console.log('  EMAIL_PASS:', process.env.EMAIL_PASS ? 'Set' : 'Missing');
+          }
         }
         break;
       
@@ -884,6 +882,33 @@ app.post('/webhook/stripe', async (req, res) => {
             return res.status(500).send('Failed to activate premium features');
           } else {
             console.log('✅ Premium features activated for subscription:', invoice.subscription);
+            
+            // 📧 Send activation email after successful payment
+            try {
+              // Get subscription details to find user
+              const { data: subData, error: subError } = await supabase
+                .from('subscriptions')
+                .select('user_id')
+                .eq('stripe_subscription_id', invoice.subscription)
+                .single();
+              
+              if (subError || !subData?.user_id) {
+                console.error('❌ Could not find user for subscription:', subError);
+              } else {
+                // Get user email
+                const { data: userData, error: userError } = await supabase.auth.admin.getUserById(subData.user_id);
+                
+                if (userError || !userData?.user?.email) {
+                  console.error('❌ Could not get user email:', userError);
+                } else {
+                  console.log('📧 Sending payment success email to:', userData.user.email);
+                  await sendActivationEmail(userData.user.email, subData.user_id);
+                  console.log('✅ Payment success email sent');
+                }
+              }
+            } catch (emailError) {
+              console.error('❌ Failed to send payment success email:', emailError);
+            }
           }
         }
         break;
@@ -916,7 +941,7 @@ app.post('/webhook/stripe', async (req, res) => {
         
         // Mark subscription as canceled
         const { error: cancelError } = await supabase
-          .from('user_subscriptions')
+          .from('subscriptions')
           .update({
             status: 'canceled',
             updated_at: new Date()
@@ -982,6 +1007,16 @@ app.post('/api/subscription/activate', async (req, res) => {
     }
 
     console.log('✅ Manual subscription activated for:', user.email);
+    
+    // 📧 Send activation email
+    try {
+      console.log('📧 Sending manual activation email to:', user.email);
+      await sendActivationEmail(user.email, user.id);
+      console.log('✅ Manual activation email sent successfully');
+    } catch (emailError) {
+      console.error('❌ Failed to send manual activation email:', emailError);
+    }
+    
     res.json({ success: true, message: 'Premium access activated' });
 
   } catch (error) {

@@ -12,7 +12,20 @@ const Home = () => {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
 
   useEffect(() => {
+    console.log('🔍 Home useEffect triggered - user:', user?.email || 'not logged in')
+    console.log('🔍 Current URL:', window.location.href)
+    console.log('🔍 Search params:', window.location.search)
+    
     const urlParams = new URLSearchParams(window.location.search)
+    const isSuccess = urlParams.get('success') === 'true'
+    const isAutoActivate = urlParams.get('auto_activate') === 'true'
+    
+    console.log('🔍 URL params:', {
+      success: urlParams.get('success'),
+      auto_activate: urlParams.get('auto_activate'),
+      isSuccess,
+      isAutoActivate
+    })
     
     // Check for email activation link
     const activateUserId = urlParams.get('activate')
@@ -25,25 +38,24 @@ const Home = () => {
     }
     
     // Check for success parameter in URL
-    if (urlParams.get('success') === 'true') {
-      const autoActivate = urlParams.get('auto_activate') === 'true'
-      
+    if (isSuccess) {
       setShowSuccessMessage(true)
-      console.log('🎉 Payment successful! User should have premium access now')
+      console.log('🎉 Payment successful! Auto-activate:', isAutoActivate, 'User:', !!user)
+      
+      // Auto-activate premium if requested and user is available
+      if (isAutoActivate && user) {
+        console.log('🚀 Auto-activating premium access...')
+        autoActivatePremium()
+        return // Don't clear URL until after activation
+      }
       
       // Clear the URL parameter
       window.history.replaceState({}, document.title, window.location.pathname)
       
-      // Auto-activate premium if requested
-      if (autoActivate && user) {
-        console.log('🚀 Auto-activating premium access...')
-        autoActivatePremium()
-      } else {
-        // Force subscription status refresh
-        setTimeout(() => {
-          window.location.reload()
-        }, 1000)
-      }
+      // Force subscription status refresh if not auto-activating
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
       
       // Hide success message after 8 seconds
       setTimeout(() => setShowSuccessMessage(false), 8000)
@@ -65,11 +77,20 @@ const Home = () => {
         }
       })
       
+      const result = await response.json()
+      console.log('🔍 Auto-activation response:', result)
+      
       if (response.ok) {
         console.log('✅ Premium auto-activated successfully!')
+        alert('🎉 Premium access activated! Welcome to Premium!')
+        // Clear URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname)
         setTimeout(() => window.location.reload(), 1500)
       } else {
-        console.error('❌ Auto-activation failed')
+        console.error('❌ Auto-activation failed:', result)
+        alert('❌ Auto-activation failed: ' + (result.error || 'Unknown error'))
+        // Clear URL parameters even if failed
+        window.history.replaceState({}, document.title, window.location.pathname)
         setTimeout(() => window.location.reload(), 1000)
       }
     } catch (error) {
