@@ -986,24 +986,40 @@ app.post('/api/subscription/activate', async (req, res) => {
     console.log('👤 Manually activating premium for user:', user.email);
 
     // Create/update subscription record
-    const { error: updateError } = await supabase
+    console.log('🔍 Creating subscription for user ID:', user.id);
+    console.log('🔍 User email:', user.email);
+    
+    const subscriptionData = {
+      user_id: user.id,
+      stripe_customer_id: 'manual_' + user.id,
+      stripe_subscription_id: 'manual_' + Date.now(),
+      status: 'active',
+      plan_type: 'premium',
+      current_period_start: new Date(),
+      current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      updated_at: new Date()
+    };
+    
+    console.log('🔍 Subscription data to insert:', subscriptionData);
+    
+    const { data: insertData, error: updateError } = await supabase
       .from('subscriptions')
-      .upsert({
-        user_id: user.id,
-        stripe_customer_id: 'manual_' + user.id,
-        stripe_subscription_id: 'manual_' + Date.now(),
-        status: 'active',
-        plan_type: 'premium',
-        current_period_start: new Date(),
-        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-        updated_at: new Date()
-      }, {
+      .upsert(subscriptionData, {
         onConflict: 'user_id'
-      });
+      })
+      .select();
+
+    console.log('🔍 Upsert result data:', insertData);
+    console.log('🔍 Upsert result error:', updateError);
 
     if (updateError) {
       console.error('❌ Error creating manual subscription:', updateError);
-      return res.status(500).json({ error: 'Failed to activate subscription' });
+      console.error('❌ Full error details:', JSON.stringify(updateError, null, 2));
+      return res.status(500).json({ 
+        error: 'Failed to activate subscription', 
+        details: updateError.message,
+        code: updateError.code
+      });
     }
 
     console.log('✅ Manual subscription activated for:', user.email);
