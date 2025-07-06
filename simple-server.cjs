@@ -964,16 +964,22 @@ app.post('/api/subscription/activate', async (req, res) => {
 
     console.log('👤 Manually activating premium for user:', user.email);
 
-    // Update user subscription_status in YOUR users table using EMAIL
-    console.log('🔍 Updating user subscription status for email:', user.email);
+    // Create or update user record in YOUR users table
+    console.log('🔍 Creating/updating user record for email:', user.email);
     
     const { data: insertData, error: updateError } = await supabase
       .from('users')
-      .update({ 
+      .upsert({ 
+        id: user.id,
+        email: user.email,
+        name: user.user_metadata?.name || user.email.split('@')[0],
+        password_hash: 'oauth_user', // placeholder since they use OAuth
         subscription_status: 'premium',
-        updated_at: new Date()
+        updated_at: new Date(),
+        created_at: new Date()
+      }, {
+        onConflict: 'email'
       })
-      .eq('email', user.email)
       .select();
 
     console.log('🔍 Upsert result data:', insertData);
