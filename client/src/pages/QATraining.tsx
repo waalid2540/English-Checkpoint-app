@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { samplePrompts } from '../data/sample-prompts'
 import { useSubscription } from '../hooks/useSubscription'
@@ -60,6 +60,7 @@ const QATraining = () => {
   const [showUpgradePopup, setShowUpgradePopup] = useState(false)
   const [elevenLabsService, setElevenLabsService] = useState<any>(null)
   const [audioLoading, setAudioLoading] = useState(false)
+  const isPlayingRef = useRef(false)
 
   // Initialize ElevenLabs service
   useEffect(() => {
@@ -92,45 +93,67 @@ const QATraining = () => {
     }
 
     setIsPlaying(true)
-    setAudioLoading(true)
+    isPlayingRef.current = true
+    setAudioLoading(false) // Don't show loading for play all
     setCurrentIndex(0)
     
     try {
       // Play each conversation sequentially with ElevenLabs
       for (let i = 0; i < availablePrompts.length; i++) {
-        if (!isPlaying) break // Stop if user clicked stop
+        // Check if user stopped playback
+        if (!isPlayingRef.current) {
+          console.log('🛑 User stopped playback')
+          break
+        }
         
         const prompt = availablePrompts[i]
         setCurrentIndex(i)
+        console.log(`🎵 Playing conversation ${i + 1}/${availablePrompts.length}`)
         
         // Play officer part
         setPlayingType('officer')
-        console.log(`🎵 Playing officer: ${prompt.officer}`)
-        await elevenLabsService.playText(prompt.officer)
+        console.log(`👮‍♂️ Officer: ${prompt.officer}`)
+        try {
+          await elevenLabsService.playText(prompt.officer)
+        } catch (error) {
+          console.error('❌ Officer audio failed:', error)
+          continue // Skip to next conversation if this one fails
+        }
         
-        if (!isPlaying) break
+        // Check again after officer speech
+        if (!isPlayingRef.current) break
         
-        // Brief pause
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        // Brief pause between officer and driver
+        await new Promise(resolve => setTimeout(resolve, 800))
         
         // Play driver part
         setPlayingType('driver')
-        console.log(`🎵 Playing driver: ${prompt.driver}`)
-        await elevenLabsService.playText(prompt.driver)
+        console.log(`🚛 Driver: ${prompt.driver}`)
+        try {
+          await elevenLabsService.playText(prompt.driver)
+        } catch (error) {
+          console.error('❌ Driver audio failed:', error)
+          continue // Skip to next conversation if this one fails
+        }
         
         setPlayingType(null)
         
-        // Pause between conversations
+        // Longer pause between conversations (3 seconds)
         if (i < availablePrompts.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 2000))
+          console.log(`⏸️ Pausing between conversations...`)
+          await new Promise(resolve => setTimeout(resolve, 3000))
         }
       }
+      
+      console.log('✅ Finished playing all conversations')
     } catch (error) {
-      console.error('❌ Audio playback error:', error)
+      console.error('❌ Play all error:', error)
     } finally {
       setIsPlaying(false)
+      isPlayingRef.current = false
       setAudioLoading(false)
       setPlayingType(null)
+      console.log('🏁 Play all completed')
     }
   }
 
@@ -161,11 +184,13 @@ const QATraining = () => {
   }
 
   const stopAll = () => {
+    console.log('🛑 Stopping all audio playback')
     setIsPlaying(false)
+    isPlayingRef.current = false
     setPlayingType(null)
     setAudioLoading(false)
     // Note: ElevenLabs audio playback can't be easily cancelled mid-stream
-    // Consider implementing audio controls if needed
+    // The loop will check isPlayingRef and stop at next iteration
   }
 
   return (
