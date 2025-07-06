@@ -3,6 +3,7 @@ import { samplePrompts } from '../data/sample-prompts'
 import { useSubscription } from '../hooks/useSubscription'
 import { useAuth } from '../contexts/AuthContext'
 import UpgradePopup from '../components/UpgradePopup'
+import { createElevenLabsService } from '../services/elevenlabs'
 
 interface PhraseCategory {
   id: string
@@ -26,6 +27,8 @@ const PronunciationTrainer = () => {
   const [showUpgradePopup, setShowUpgradePopup] = useState(false)
   const [practiceScore, setPracticeScore] = useState(0)
   const [practiceStreak, setPracticeStreak] = useState(0)
+  const [elevenLabsService, setElevenLabsService] = useState<any>(null)
+  const [audioLoading, setAudioLoading] = useState(false)
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
@@ -135,6 +138,21 @@ const PronunciationTrainer = () => {
     }
   ]
 
+  // Initialize ElevenLabs service
+  useEffect(() => {
+    console.log('🔧 Pronunciation Trainer - Environment Variables Check:')
+    console.log('  VITE_ELEVENLABS_API_KEY:', import.meta.env.VITE_ELEVENLABS_API_KEY ? 'EXISTS' : 'MISSING')
+    console.log('  VITE_ELEVENLABS_VOICE_ID:', import.meta.env.VITE_ELEVENLABS_VOICE_ID ? 'EXISTS' : 'MISSING')
+    
+    try {
+      const service = createElevenLabsService()
+      setElevenLabsService(service)
+      console.log('✅ ElevenLabs service initialized for Pronunciation Trainer')
+    } catch (error) {
+      console.error('❌ Failed to initialize ElevenLabs for Pronunciation Trainer:', error)
+    }
+  }, [])
+
   const currentCategory = phraseCategories.find(cat => cat.id === selectedCategory) || phraseCategories[0]
   const currentPhrase = currentCategory.phrases[currentPhraseIndex] || currentCategory.phrases[0]
   const isLocked = selectedCategory === 'advanced' && !subscription.isPremium
@@ -184,37 +202,31 @@ const PronunciationTrainer = () => {
     setIsRecording(false)
   }
   
-  const playOriginalAudio = () => {
+  const playOriginalAudio = async () => {
     if (isLocked) {
       setShowUpgradePopup(true)
       return
     }
     
-    speechSynthesis.cancel()
+    if (!elevenLabsService) {
+      console.error('ElevenLabs service not initialized')
+      return
+    }
+    
     setPlayingType('original')
     setIsPlaying(true)
+    setAudioLoading(true)
     
-    const utterance = new SpeechSynthesisUtterance(currentPhrase)
-    utterance.rate = 0.7
-    utterance.pitch = 1
-    utterance.volume = 1
-    
-    // Use best English voice
-    const voices = speechSynthesis.getVoices()
-    const englishVoice = voices.find(voice => 
-      voice.lang.startsWith('en') && voice.name.includes('Google')
-    ) || voices.find(voice => voice.lang.startsWith('en'))
-    
-    if (englishVoice) {
-      utterance.voice = englishVoice
-    }
-    
-    utterance.onend = () => {
+    try {
+      console.log(`🎵 Playing with ElevenLabs: ${currentPhrase}`)
+      await elevenLabsService.playText(currentPhrase)
+    } catch (error) {
+      console.error('❌ ElevenLabs playback error:', error)
+    } finally {
       setIsPlaying(false)
       setPlayingType(null)
+      setAudioLoading(false)
     }
-    
-    speechSynthesis.speak(utterance)
   }
   
   const playRecordedAudio = () => {
