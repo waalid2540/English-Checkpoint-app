@@ -679,12 +679,14 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
     const token = authHeader?.replace('Bearer ', '');
     
     let userId = null;
+    let user = null;
     if (token) {
       try {
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-        if (user) {
-          userId = user.id;
-          console.log('✅ User authenticated:', user.email);
+        const { data: { user: authUser }, error } = await supabase.auth.getUser(token);
+        if (authUser) {
+          userId = authUser.id;
+          user = authUser;
+          console.log('✅ User authenticated:', authUser.email);
         }
       } catch (authError) {
         console.log('⚠️ Auth error, proceeding without user:', authError.message);
