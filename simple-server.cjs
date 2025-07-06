@@ -168,57 +168,36 @@ app.get('/api/subscription/status', async (req, res) => {
 
     console.log('✅ User authenticated:', user.email);
 
-    // Check user's subscription status with better error handling
-    console.log('📊 Checking subscription in database...');
-    let subscription = null;
+    // Check user's subscription status in YOUR users table
+    console.log('📊 Checking subscription status in users table...');
+    let userRecord = null;
     
     try {
-      const { data, error: subError } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no rows found
+      const { data, error: userError } = await supabase
+        .from('users')
+        .select('subscription_status')
+        .eq('id', user.id)
+        .maybeSingle();
 
-      if (subError) {
-        console.log('📊 Subscription query error:', subError.code, subError.message);
-        // Only log the error, don't fail - treat as no subscription
+      if (userError) {
+        console.log('📊 User query error:', userError.code, userError.message);
       } else {
-        subscription = data;
-        console.log('📊 Subscription query successful:', data ? 'Found subscription' : 'No subscription');
+        userRecord = data;
+        console.log('📊 User query successful:', data);
       }
     } catch (dbError) {
       console.error('❌ Database connection error:', dbError);
-      // Continue with no subscription - don't fail the request
     }
-
-    console.log('📊 Subscription data:', subscription ? JSON.stringify(subscription, null, 2) : 'No subscription');
 
     // Calculate subscription status
     let isPremium = false;
     let trialDaysLeft = 0;
     
-    if (subscription) {
-      const now = new Date();
-      console.log('🔍 Subscription status:', subscription.status);
-      console.log('🔍 Subscription plan:', subscription.plan_type);
-      
-      // Check if subscription is active
-      if (subscription.status === 'active' || subscription.status === 'trialing') {
-        isPremium = true;
-        console.log('✅ User has premium subscription');
-      } else {
-        console.log('⚠️ Subscription status not active:', subscription.status);
-      }
-      
-      // Calculate trial days left
-      if (subscription.trial_end) {
-        const trialEnd = new Date(subscription.trial_end);
-        const daysLeft = Math.max(0, Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24)));
-        trialDaysLeft = daysLeft;
-        console.log('📅 Trial days left:', daysLeft);
-      }
+    if (userRecord && userRecord.subscription_status === 'premium') {
+      isPremium = true;
+      console.log('✅ User has premium subscription');
     } else {
-      console.log('📊 No subscription found - user gets freemium access');
+      console.log('📊 User has free subscription_status:', userRecord?.subscription_status || 'not found');
     }
 
     // Get daily usage (mock for now - you can implement actual tracking)
@@ -230,7 +209,7 @@ app.get('/api/subscription/status', async (req, res) => {
       trialDaysLeft,
       dailyUsage,
       dailyLimit,
-      subscriptionId: subscription?.stripe_subscription_id || null
+      subscriptionId: userRecord?.subscription_status || null
     };
 
     console.log('✅ Subscription status result:', result);
@@ -985,28 +964,17 @@ app.post('/api/subscription/activate', async (req, res) => {
 
     console.log('👤 Manually activating premium for user:', user.email);
 
-    // Create/update subscription record
-    console.log('🔍 Creating subscription for user ID:', user.id);
+    // Update user subscription_status in YOUR users table
+    console.log('🔍 Updating user subscription status for ID:', user.id);
     console.log('🔍 User email:', user.email);
     
-    const subscriptionData = {
-      user_id: user.id,
-      stripe_customer_id: 'manual_' + user.id,
-      stripe_subscription_id: 'manual_' + Date.now(),
-      status: 'active',
-      plan_type: 'premium',
-      current_period_start: new Date(),
-      current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-      updated_at: new Date()
-    };
-    
-    console.log('🔍 Subscription data to insert:', subscriptionData);
-    
     const { data: insertData, error: updateError } = await supabase
-      .from('subscriptions')
-      .upsert(subscriptionData, {
-        onConflict: 'user_id'
+      .from('users')
+      .update({ 
+        subscription_status: 'premium',
+        updated_at: new Date()
       })
+      .eq('id', user.id)
       .select();
 
     console.log('🔍 Upsert result data:', insertData);
