@@ -12,8 +12,19 @@ const Home = () => {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
 
   useEffect(() => {
-    // Check for success parameter in URL
     const urlParams = new URLSearchParams(window.location.search)
+    
+    // Check for email activation link
+    const activateUserId = urlParams.get('activate')
+    const activateToken = urlParams.get('token')
+    
+    if (activateUserId && activateToken && user) {
+      console.log('🎉 Email activation detected, activating premium...')
+      handleEmailActivation(activateUserId, activateToken)
+      return
+    }
+    
+    // Check for success parameter in URL
     if (urlParams.get('success') === 'true') {
       setShowSuccessMessage(true)
       console.log('🎉 Payment successful! User should have premium access now')
@@ -29,7 +40,35 @@ const Home = () => {
       // Hide success message after 8 seconds
       setTimeout(() => setShowSuccessMessage(false), 8000)
     }
-  }, [])
+  }, [user])
+
+  const handleEmailActivation = async (userId: string, token: string) => {
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://english-checkpoint-app.onrender.com'
+      const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
+      
+      const response = await fetch(`${API_BASE_URL}/api/subscription/activate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId, token })
+      })
+      
+      if (response.ok) {
+        setShowSuccessMessage(true)
+        // Clear URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname)
+        // Reload to refresh subscription status
+        setTimeout(() => window.location.reload(), 1000)
+      } else {
+        console.error('❌ Email activation failed')
+      }
+    } catch (error) {
+      console.error('❌ Email activation error:', error)
+    }
+  }
 
   return (
     <div className="animate-fade-in">
@@ -39,9 +78,9 @@ const Home = () => {
           <div className="flex items-center space-x-3">
             <span className="text-2xl">🎉</span>
             <div>
-              <h3 className="font-bold">Payment Successful!</h3>
+              <h3 className="font-bold">Premium Activated!</h3>
               <p className="text-sm">You now have unlimited access to all features!</p>
-              <p className="text-xs mt-1 opacity-80">Refreshing your account...</p>
+              <p className="text-xs mt-1 opacity-80">Welcome to Premium! 🚀</p>
             </div>
           </div>
         </div>

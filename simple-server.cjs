@@ -10,6 +10,77 @@ const fileUpload = require('express-fileupload');
 // Initialize Stripe with secret key
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
+// Initialize nodemailer
+const nodemailer = require('nodemailer');
+
+// Email configuration
+const transporter = nodemailer.createTransporter({
+  service: 'gmail', // or your email service
+  auth: {
+    user: process.env.EMAIL_USER || 'your-email@gmail.com',
+    pass: process.env.EMAIL_PASS || 'your-app-password'
+  }
+});
+
+// Send activation email
+async function sendActivationEmail(userEmail, userId) {
+  const activationUrl = `https://english-checkpoint-frontend.onrender.com/?activate=${userId}&token=${Buffer.from(userId).toString('base64')}`;
+  
+  const mailOptions = {
+    from: process.env.EMAIL_USER || 'English Checkpoint <noreply@englishcheckpoint.com>',
+    to: userEmail,
+    subject: '🎉 Welcome to Premium! Activate Your Access',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; border-radius: 10px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="font-size: 32px; margin: 0;">🚛 English Checkpoint</h1>
+          <h2 style="font-size: 24px; margin: 10px 0; color: #FFD700;">Payment Successful!</h2>
+        </div>
+        
+        <div style="background: rgba(255,255,255,0.1); padding: 30px; border-radius: 10px; margin: 20px 0;">
+          <h3 style="color: #FFD700; margin-top: 0;">🎉 Welcome to Premium!</h3>
+          <p style="font-size: 18px; line-height: 1.6;">
+            Thank you for upgrading to Premium! Your payment has been processed successfully.
+          </p>
+          
+          <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h4 style="margin-top: 0; color: #FFD700;">✨ What's Now Unlocked:</h4>
+            <ul style="font-size: 16px; line-height: 1.8;">
+              <li>🚔 Unlimited DOT practice questions (200+)</li>
+              <li>🎯 Advanced pronunciation training</li>
+              <li>⚡ All speed quiz difficulty levels</li>
+              <li>🛣️ Complete highway rules content</li>
+              <li>🔊 Premium voice features</li>
+            </ul>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${activationUrl}" 
+               style="background: #FFD700; color: #333; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; font-size: 18px; display: inline-block;">
+              🚀 ACTIVATE PREMIUM ACCESS
+            </a>
+          </div>
+          
+          <p style="font-size: 14px; color: #DDD; text-align: center; margin-top: 20px;">
+            Click the button above to instantly activate your premium features!
+          </p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
+          <p style="font-size: 14px; color: #CCC;">
+            Need help? Reply to this email or visit our support page.
+          </p>
+          <p style="font-size: 12px; color: #999;">
+            English Checkpoint - Professional English for Truck Drivers
+          </p>
+        </div>
+      </div>
+    `
+  };
+
+  return transporter.sendMail(mailOptions);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3003;
 
@@ -672,6 +743,17 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
 
     console.log('✅ Checkout session created:', session.id);
     console.log('✅ Checkout URL:', session.url);
+    
+    // Send activation email after checkout session creation
+    if (user && user.email) {
+      try {
+        await sendActivationEmail(user.email, user.id);
+        console.log('📧 Activation email sent to:', user.email);
+      } catch (emailError) {
+        console.error('❌ Failed to send activation email:', emailError);
+        // Don't fail the checkout if email fails
+      }
+    }
     
     res.json({
       url: session.url,
