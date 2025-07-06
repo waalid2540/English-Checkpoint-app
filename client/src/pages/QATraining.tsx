@@ -4,6 +4,7 @@ import { samplePrompts } from '../data/sample-prompts'
 import { useSubscription } from '../hooks/useSubscription'
 import { useAuth } from '../contexts/AuthContext'
 import UpgradePopup from '../components/UpgradePopup'
+import { createElevenLabsService } from '../services/elevenlabs'
 
 const QATraining = () => {
   const { user, loading } = useAuth()
@@ -57,6 +58,24 @@ const QATraining = () => {
   const [isPlaying, setIsPlaying] = useState(false)
   const [playingType, setPlayingType] = useState<'officer' | 'driver' | null>(null)
   const [showUpgradePopup, setShowUpgradePopup] = useState(false)
+  const [elevenLabsService, setElevenLabsService] = useState<any>(null)
+  const [audioLoading, setAudioLoading] = useState(false)
+
+  // Initialize ElevenLabs service
+  useEffect(() => {
+    console.log('🔧 Environment Variables Check:')
+    console.log('  All env vars:', Object.keys(import.meta.env))
+    console.log('  VITE_ELEVENLABS_API_KEY:', import.meta.env.VITE_ELEVENLABS_API_KEY ? 'EXISTS' : 'MISSING')
+    console.log('  VITE_ELEVENLABS_VOICE_ID:', import.meta.env.VITE_ELEVENLABS_VOICE_ID ? 'EXISTS' : 'MISSING')
+    
+    try {
+      const service = createElevenLabsService()
+      setElevenLabsService(service)
+      console.log('✅ ElevenLabs service initialized')
+    } catch (error) {
+      console.error('❌ Failed to initialize ElevenLabs:', error)
+    }
+  }, [])
 
   // Filter prompts based on subscription status
   const availablePrompts = samplePrompts.filter((prompt, index) => {
@@ -66,50 +85,87 @@ const QATraining = () => {
 
   const currentPrompt = availablePrompts[currentIndex] || samplePrompts[0]
 
-  const playAll = () => {
+  const playAll = async () => {
+    if (!elevenLabsService) {
+      console.error('ElevenLabs service not initialized')
+      return
+    }
+
     setIsPlaying(true)
+    setAudioLoading(true)
     setCurrentIndex(0)
     
-    // Create conversation audio using available prompts
-    let script = ""
-    availablePrompts.forEach(prompt => {
-      script += `Officer: ${prompt.officer}... Driver: ${prompt.driver}... `
-    })
-    
-    // Play audio
-    const utterance = new SpeechSynthesisUtterance(script)
-    utterance.rate = 0.7
-    utterance.onend = () => setIsPlaying(false)
-    speechSynthesis.speak(utterance)
-    
-    // Update text every 8 seconds (slower to match audio)
-    let questionIndex = 0
-    const updateText = () => {
-      if (questionIndex < availablePrompts.length) {
-        console.log(`Showing question ${questionIndex + 1}`)
-        setCurrentIndex(questionIndex)
-        setPlayingType('officer')
+    try {
+      // Play each conversation sequentially with ElevenLabs
+      for (let i = 0; i < availablePrompts.length; i++) {
+        if (!isPlaying) break // Stop if user clicked stop
         
-        setTimeout(() => {
-          setPlayingType('driver')
-          setTimeout(() => {
-            setPlayingType(null)
-            questionIndex++
-            if (questionIndex < availablePrompts.length) {
-              setTimeout(updateText, 1500)
-            }
-          }, 4000)
-        }, 4000)
+        const prompt = availablePrompts[i]
+        setCurrentIndex(i)
+        
+        // Play officer part
+        setPlayingType('officer')
+        console.log(`🎵 Playing officer: ${prompt.officer}`)
+        await elevenLabsService.playText(prompt.officer)
+        
+        if (!isPlaying) break
+        
+        // Brief pause
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // Play driver part
+        setPlayingType('driver')
+        console.log(`🎵 Playing driver: ${prompt.driver}`)
+        await elevenLabsService.playText(prompt.driver)
+        
+        setPlayingType(null)
+        
+        // Pause between conversations
+        if (i < availablePrompts.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 2000))
+        }
       }
+    } catch (error) {
+      console.error('❌ Audio playback error:', error)
+    } finally {
+      setIsPlaying(false)
+      setAudioLoading(false)
+      setPlayingType(null)
     }
+  }
+
+  const playCurrentPrompt = async () => {
+    if (!elevenLabsService) return
     
-    updateText()
+    setAudioLoading(true)
+    try {
+      const prompt = currentPrompt
+      
+      // Play officer part
+      setPlayingType('officer')
+      await elevenLabsService.playText(prompt.officer)
+      
+      // Brief pause
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Play driver part
+      setPlayingType('driver')
+      await elevenLabsService.playText(prompt.driver)
+      
+    } catch (error) {
+      console.error('❌ Single prompt playback error:', error)
+    } finally {
+      setAudioLoading(false)
+      setPlayingType(null)
+    }
   }
 
   const stopAll = () => {
     setIsPlaying(false)
     setPlayingType(null)
-    speechSynthesis.cancel()
+    setAudioLoading(false)
+    // Note: ElevenLabs audio playback can't be easily cancelled mid-stream
+    // Consider implementing audio controls if needed
   }
 
   return (
@@ -120,13 +176,26 @@ const QATraining = () => {
       <div className="text-center mb-8">
         <button
           onClick={isPlaying ? stopAll : playAll}
-          className={`w-40 h-40 rounded-full text-white font-bold shadow-lg ${
+          disabled={audioLoading || !elevenLabsService}
+          className={`w-40 h-40 rounded-full text-white font-bold shadow-lg disabled:bg-gray-400 ${
             isPlaying ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
           }`}
         >
-          <div className="text-5xl mb-2">{isPlaying ? '⏹️' : '▶️'}</div>
-          <div className="text-lg">{isPlaying ? 'STOP' : 'PLAY ALL'}</div>
+          {audioLoading ? (
+            <>
+              <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+              <div className="text-sm">Loading ElevenLabs...</div>
+            </>
+          ) : (
+            <>
+              <div className="text-5xl mb-2">{isPlaying ? '⏹️' : '▶️'}</div>
+              <div className="text-lg">{isPlaying ? 'STOP' : 'PLAY ALL'}</div>
+            </>
+          )}
         </button>
+        {!elevenLabsService && (
+          <p className="text-red-500 text-sm mt-2">⚠️ ElevenLabs not initialized</p>
+        )}
       </div>
 
       {/* Progress */}
@@ -210,6 +279,22 @@ const QATraining = () => {
           <span className="text-lg font-medium text-gray-700">
             {currentIndex + 1} / {availablePrompts.length}
           </span>
+          <div className="mt-2">
+            <button
+              onClick={playCurrentPrompt}
+              disabled={audioLoading || !elevenLabsService}
+              className="bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg font-medium text-sm"
+            >
+              {audioLoading ? (
+                <span className="flex items-center">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Loading...
+                </span>
+              ) : (
+                '🎵 Play This Conversation'
+              )}
+            </button>
+          </div>
         </div>
 
         <button
