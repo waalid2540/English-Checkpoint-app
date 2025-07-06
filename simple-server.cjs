@@ -747,14 +747,25 @@ app.post('/api/stripe/create-checkout-session', async (req, res) => {
     console.log('✅ Checkout URL:', session.url);
     
     // Send activation email after checkout session creation
+    console.log('🔍 Email check - User object:', user ? 'exists' : 'null');
+    console.log('🔍 Email check - User email:', user?.email);
+    console.log('🔍 Email environment variables:');
+    console.log('  - EMAIL_USER:', process.env.EMAIL_USER ? 'set' : 'not set');
+    console.log('  - EMAIL_PASS:', process.env.EMAIL_PASS ? 'set' : 'not set');
+    
     if (user && user.email) {
       try {
+        console.log('📧 Attempting to send activation email to:', user.email);
         await sendActivationEmail(user.email, user.id);
-        console.log('📧 Activation email sent to:', user.email);
+        console.log('✅ Activation email sent successfully to:', user.email);
       } catch (emailError) {
         console.error('❌ Failed to send activation email:', emailError);
+        console.error('❌ Email error details:', emailError.message);
+        console.error('❌ Email error stack:', emailError.stack);
         // Don't fail the checkout if email fails
       }
+    } else {
+      console.log('⚠️ Cannot send email - user or email missing');
     }
     
     res.json({

@@ -28,7 +28,7 @@ const UpgradePopup: React.FC<UpgradePopupProps> = ({
       const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
       console.log('✅ Got auth session:', !!session)
       
-      const successUrl = `${window.location.origin}/?success=true`
+      const successUrl = `${window.location.origin}/?success=true&auto_activate=true`
       const cancelUrl = `${window.location.origin}/?canceled=true`
       
       const requestData = {

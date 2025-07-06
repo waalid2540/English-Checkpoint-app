@@ -26,21 +26,57 @@ const Home = () => {
     
     // Check for success parameter in URL
     if (urlParams.get('success') === 'true') {
+      const autoActivate = urlParams.get('auto_activate') === 'true'
+      
       setShowSuccessMessage(true)
       console.log('🎉 Payment successful! User should have premium access now')
       
       // Clear the URL parameter
       window.history.replaceState({}, document.title, window.location.pathname)
       
-      // Force subscription status refresh
-      setTimeout(() => {
-        window.location.reload()
-      }, 1000)
+      // Auto-activate premium if requested
+      if (autoActivate && user) {
+        console.log('🚀 Auto-activating premium access...')
+        autoActivatePremium()
+      } else {
+        // Force subscription status refresh
+        setTimeout(() => {
+          window.location.reload()
+        }, 1000)
+      }
       
       // Hide success message after 8 seconds
       setTimeout(() => setShowSuccessMessage(false), 8000)
     }
   }, [user])
+
+  const autoActivatePremium = async () => {
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://english-checkpoint-app.onrender.com'
+      const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
+      
+      console.log('🔄 Auto-activating premium for user after payment...')
+      
+      const response = await fetch(`${API_BASE_URL}/api/subscription/activate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (response.ok) {
+        console.log('✅ Premium auto-activated successfully!')
+        setTimeout(() => window.location.reload(), 1500)
+      } else {
+        console.error('❌ Auto-activation failed')
+        setTimeout(() => window.location.reload(), 1000)
+      }
+    } catch (error) {
+      console.error('❌ Auto-activation error:', error)
+      setTimeout(() => window.location.reload(), 1000)
+    }
+  }
 
   const handleEmailActivation = async (userId: string, token: string) => {
     try {
