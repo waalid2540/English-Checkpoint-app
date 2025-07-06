@@ -20,6 +20,9 @@ class ElevenLabsService {
 
   async generateSpeech(text: string): Promise<ArrayBuffer> {
     try {
+      console.log(`🎵 ElevenLabs: Generating speech for: "${text.substring(0, 50)}..."`)
+      console.log(`🔗 API URL: ${this.config.baseUrl}/text-to-speech/${this.config.voiceId}`)
+      
       const response = await fetch(`${this.config.baseUrl}/text-to-speech/${this.config.voiceId}`, {
         method: 'POST',
         headers: {
@@ -39,13 +42,19 @@ class ElevenLabsService {
         })
       })
 
+      console.log(`📡 ElevenLabs response status: ${response.status}`)
+      
       if (!response.ok) {
-        throw new Error(`ElevenLabs API error: ${response.status}`)
+        const errorText = await response.text()
+        console.error(`❌ ElevenLabs API error: ${response.status} - ${errorText}`)
+        throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`)
       }
 
-      return await response.arrayBuffer()
+      const arrayBuffer = await response.arrayBuffer()
+      console.log(`✅ Generated audio: ${arrayBuffer.byteLength} bytes`)
+      return arrayBuffer
     } catch (error) {
-      console.error('ElevenLabs TTS error:', error)
+      console.error('❌ ElevenLabs TTS error:', error)
       throw error
     }
   }
@@ -97,7 +106,13 @@ export const createElevenLabsService = (): ElevenLabsService => {
   const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY
   const voiceId = import.meta.env.VITE_ELEVENLABS_VOICE_ID
   
+  console.log('🔍 ElevenLabs Debug:')
+  console.log('  API Key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'MISSING')
+  console.log('  Voice ID:', voiceId || 'MISSING')
+  console.log('  Environment vars loaded:', Object.keys(import.meta.env))
+  
   if (!apiKey || !voiceId) {
+    console.error('❌ ElevenLabs configuration missing')
     throw new Error('ElevenLabs API key and Voice ID must be configured in environment variables')
   }
   
