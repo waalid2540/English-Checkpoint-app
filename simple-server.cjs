@@ -793,21 +793,28 @@ app.post('/webhook/stripe', async (req, res) => {
         
         console.log('👤 Processing subscription for user ID:', userId);
         
-        // Update user subscription status in Supabase
+        // Get user email from Supabase auth
+        const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
+        
+        if (authError || !authUser?.user?.email) {
+          console.error('❌ Could not get user email for webhook:', authError);
+          return res.status(400).send('Could not find user email');
+        }
+        
+        // Update user subscription status in YOUR users table
         const { error: updateError } = await supabase
-          .from('subscriptions')
+          .from('users')
           .upsert({
-            user_id: userId,
+            id: userId,
+            email: authUser.user.email,
+            name: authUser.user.user_metadata?.name || authUser.user.email.split('@')[0],
+            password_hash: 'stripe_user',
+            subscription_status: 'premium',
             stripe_customer_id: subscription.customer,
-            stripe_subscription_id: subscription.id,
-            status: subscription.status,
-            plan_type: 'premium',
-            current_period_start: new Date(subscription.current_period_start * 1000),
-            current_period_end: new Date(subscription.current_period_end * 1000),
-            trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
-            updated_at: new Date()
+            updated_at: new Date(),
+            created_at: new Date()
           }, {
-            onConflict: 'stripe_subscription_id'
+            onConflict: 'email'
           });
         
         if (updateError) {
@@ -818,16 +825,9 @@ app.post('/webhook/stripe', async (req, res) => {
           
           // 📧 Send activation email to user
           try {
-            // Get user email from Supabase
-            const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
-            
-            if (userError || !userData?.user?.email) {
-              console.error('❌ Could not get user email for activation email:', userError);
-            } else {
-              console.log('📧 Sending activation email to:', userData.user.email);
-              await sendActivationEmail(userData.user.email, userId);
-              console.log('✅ Activation email sent successfully');
-            }
+            console.log('📧 Sending activation email to:', authUser.user.email);
+            await sendActivationEmail(authUser.user.email, userId);
+            console.log('✅ Activation email sent successfully');
           } catch (emailError) {
             console.error('❌ Failed to send activation email:', emailError);
             console.log('🔍 Email environment check:');
