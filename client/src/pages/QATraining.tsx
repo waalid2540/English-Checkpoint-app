@@ -138,10 +138,10 @@ const QATraining = () => {
         
         setPlayingType(null)
         
-        // Extra long pause between conversations (4 seconds) for processing
+        // Short pause between conversations (next question)
         if (i < availablePrompts.length - 1) {
-          console.log(`⏸️ Pausing between conversations for comprehension...`)
-          await new Promise(resolve => setTimeout(resolve, 4000))
+          console.log(`⏸️ Moving to next question...`)
+          await new Promise(resolve => setTimeout(resolve, 1500))
         }
       }
       
