@@ -168,15 +168,15 @@ app.get('/api/subscription/status', async (req, res) => {
 
     console.log('✅ User authenticated:', user.email);
 
-    // Check user's subscription status in YOUR users table
-    console.log('📊 Checking subscription status in users table...');
+    // Check user's subscription status in YOUR users table using EMAIL
+    console.log('📊 Checking subscription status in users table by email...');
     let userRecord = null;
     
     try {
       const { data, error: userError } = await supabase
         .from('users')
-        .select('subscription_status')
-        .eq('id', user.id)
+        .select('subscription_status, id, email')
+        .eq('email', user.email)
         .maybeSingle();
 
       if (userError) {
@@ -964,9 +964,8 @@ app.post('/api/subscription/activate', async (req, res) => {
 
     console.log('👤 Manually activating premium for user:', user.email);
 
-    // Update user subscription_status in YOUR users table
-    console.log('🔍 Updating user subscription status for ID:', user.id);
-    console.log('🔍 User email:', user.email);
+    // Update user subscription_status in YOUR users table using EMAIL
+    console.log('🔍 Updating user subscription status for email:', user.email);
     
     const { data: insertData, error: updateError } = await supabase
       .from('users')
@@ -974,7 +973,7 @@ app.post('/api/subscription/activate', async (req, res) => {
         subscription_status: 'premium',
         updated_at: new Date()
       })
-      .eq('id', user.id)
+      .eq('email', user.email)
       .select();
 
     console.log('🔍 Upsert result data:', insertData);
