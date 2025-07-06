@@ -21,13 +21,13 @@ class ElevenLabsService {
   // Add natural pauses to text for slower, clearer speech
   private addNaturalPauses(text: string): string {
     return text
-      // Add pause after periods and question marks
-      .replace(/\./g, '...')
-      .replace(/\?/g, '?...')
-      // Add pause after commas
-      .replace(/,/g, ',.')
-      // Add pause after "Officer:" or "Driver:" if present
-      .replace(/(Officer:|Driver:)/g, '$1...')
+      // Add longer pauses after periods and question marks for slower speech
+      .replace(/\./g, '. . .')
+      .replace(/\?/g, '? . . .')
+      // Add pauses after commas for slower speech
+      .replace(/,/g, ', . ')
+      // Add pauses between words for very slow speech
+      .replace(/\s+/g, ' . ')
   }
 
   async generateSpeech(text: string): Promise<ArrayBuffer> {
