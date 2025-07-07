@@ -5,6 +5,7 @@ import { useSubscription } from '../hooks/useSubscription'
 import { useAuth } from '../contexts/AuthContext'
 import UpgradePopup from '../components/UpgradePopup'
 import { createElevenLabsService } from '../services/elevenlabs'
+import { translationService, SUPPORTED_LANGUAGES } from '../services/translation'
 
 const QATraining = () => {
   const { user, loading } = useAuth()
@@ -61,6 +62,10 @@ const QATraining = () => {
   const [elevenLabsService, setElevenLabsService] = useState<any>(null)
   const [audioLoading, setAudioLoading] = useState(false)
   const isPlayingRef = useRef(false)
+  const [selectedLanguage, setSelectedLanguage] = useState('en')
+  const [translatedPrompts, setTranslatedPrompts] = useState<any[]>([])
+  const [translating, setTranslating] = useState(false)
+  const [showAllLanguages, setShowAllLanguages] = useState(false)
 
   // Initialize ElevenLabs service
   useEffect(() => {
@@ -84,7 +89,49 @@ const QATraining = () => {
     return subscription.isPremium // Rest require premium
   })
 
-  const currentPrompt = availablePrompts[currentIndex] || samplePrompts[0]
+  // Translate prompts when language changes
+  useEffect(() => {
+    const translatePrompts = async () => {
+      if (selectedLanguage === 'en') {
+        setTranslatedPrompts(availablePrompts)
+        return
+      }
+
+      setTranslating(true)
+      try {
+        console.log(`🌍 Translating ${availablePrompts.length} prompts to ${selectedLanguage}`)
+        
+        const translated = await Promise.all(
+          availablePrompts.map(async (prompt) => {
+            const result = await translationService.translateConversation(
+              prompt.officer,
+              prompt.driver,
+              selectedLanguage
+            )
+            return {
+              ...prompt,
+              officer: result.officer,
+              driver: result.driver,
+              originalOfficer: prompt.officer, // Keep original for audio
+              originalDriver: prompt.driver    // Keep original for audio
+            }
+          })
+        )
+        
+        setTranslatedPrompts(translated)
+        console.log('✅ All prompts translated successfully')
+      } catch (error) {
+        console.error('❌ Translation failed:', error)
+        setTranslatedPrompts(availablePrompts) // Fallback to original
+      } finally {
+        setTranslating(false)
+      }
+    }
+
+    translatePrompts()
+  }, [selectedLanguage, availablePrompts.length, subscription.isPremium])
+
+  const currentPrompt = translatedPrompts[currentIndex] || availablePrompts[currentIndex] || samplePrompts[0]
 
   const playAll = async () => {
     if (!elevenLabsService) {
@@ -110,11 +157,13 @@ const QATraining = () => {
         setCurrentIndex(i)
         console.log(`🎵 Playing conversation ${i + 1}/${availablePrompts.length}`)
         
-        // Play officer part
+        // Play officer part (always in English for best audio quality)
         setPlayingType('officer')
         console.log(`👮‍♂️ Officer: ${prompt.officer}`)
         try {
-          await elevenLabsService.playText(prompt.officer)
+          // Use original English text for audio, even if displaying translated
+          const audioText = prompt.originalOfficer || prompt.officer
+          await elevenLabsService.playText(audioText)
         } catch (error) {
           console.error('❌ Officer audio failed:', error)
           continue // Skip to next conversation if this one fails
@@ -126,11 +175,13 @@ const QATraining = () => {
         // Short pause between officer and driver
         await new Promise(resolve => setTimeout(resolve, 1000))
         
-        // Play driver part
+        // Play driver part (always in English for best audio quality)
         setPlayingType('driver')
         console.log(`🚛 Driver: ${prompt.driver}`)
         try {
-          await elevenLabsService.playText(prompt.driver)
+          // Use original English text for audio, even if displaying translated
+          const audioText = prompt.originalDriver || prompt.driver
+          await elevenLabsService.playText(audioText)
         } catch (error) {
           console.error('❌ Driver audio failed:', error)
           continue // Skip to next conversation if this one fails
@@ -164,16 +215,18 @@ const QATraining = () => {
     try {
       const prompt = currentPrompt
       
-      // Play officer part
+      // Play officer part (use original English for audio)
       setPlayingType('officer')
-      await elevenLabsService.playText(prompt.officer)
+      const officerText = prompt.originalOfficer || prompt.officer
+      await elevenLabsService.playText(officerText)
       
       // Brief pause
       await new Promise(resolve => setTimeout(resolve, 1000))
       
-      // Play driver part
+      // Play driver part (use original English for audio)
       setPlayingType('driver')
-      await elevenLabsService.playText(prompt.driver)
+      const driverText = prompt.originalDriver || prompt.driver
+      await elevenLabsService.playText(driverText)
       
     } catch (error) {
       console.error('❌ Single prompt playback error:', error)
@@ -196,6 +249,61 @@ const QATraining = () => {
   return (
     <div className="max-w-4xl mx-auto p-8">
       <h1 className="text-4xl font-bold text-center mb-8">🎵 DOT Practice Training</h1>
+      
+      {/* Language Selector */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-8 border border-blue-200">
+        <div className="flex flex-col md:flex-row items-center justify-between">
+          <div className="mb-4 md:mb-0">
+            <h3 className="text-lg font-bold text-gray-800 mb-2">🌍 Choose Your Language</h3>
+            <p className="text-sm text-gray-600">
+              English audio with {selectedLanguage === 'en' ? 'English' : translationService.getLanguageName(selectedLanguage)} text for better understanding
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 max-w-4xl">
+            {(showAllLanguages ? SUPPORTED_LANGUAGES : SUPPORTED_LANGUAGES.slice(0, 8)).map((language) => (
+              <button
+                key={language.code}
+                onClick={() => setSelectedLanguage(language.code)}
+                disabled={translating}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium text-sm transition-all ${
+                  selectedLanguage === language.code
+                    ? 'bg-blue-600 text-white shadow-lg'
+                    : 'bg-white text-gray-700 hover:bg-blue-50 border border-gray-200'
+                } disabled:opacity-50`}
+              >
+                <span className="text-lg">{language.flag}</span>
+                <span>{language.name}</span>
+              </button>
+            ))}
+            
+            {!showAllLanguages && (
+              <button
+                onClick={() => setShowAllLanguages(true)}
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg font-medium text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-300"
+              >
+                <span>+{SUPPORTED_LANGUAGES.length - 8} more</span>
+              </button>
+            )}
+            
+            {showAllLanguages && (
+              <button
+                onClick={() => setShowAllLanguages(false)}
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg font-medium text-sm bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-300"
+              >
+                <span>Show Less</span>
+              </button>
+            )}
+          </div>
+        </div>
+        
+        {translating && (
+          <div className="mt-4 flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-3"></div>
+            <span className="text-blue-600 font-medium">Translating to {translationService.getLanguageName(selectedLanguage)}...</span>
+          </div>
+        )}
+      </div>
       
       {/* Big Play Button */}
       <div className="text-center mb-8">

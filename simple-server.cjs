@@ -1013,6 +1013,51 @@ app.post('/api/subscription/activate', async (req, res) => {
   }
 });
 
+// Translation API endpoint using Google Translate
+app.post('/api/translate', async (req, res) => {
+  try {
+    const { text, target, source = 'en' } = req.body;
+    
+    if (!text || !target) {
+      return res.status(400).json({ error: 'Text and target language are required' });
+    }
+
+    console.log(`🌍 Translation request: ${source} → ${target}`);
+    console.log(`📝 Text: "${text.substring(0, 100)}..."`);
+
+    // For now, let's use a free translation approach
+    // You can upgrade to Google Translate API later
+    
+    // Using Google Translate free endpoint (unofficial)
+    const translateUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${source}&tl=${target}&dt=t&q=${encodeURIComponent(text)}`;
+    
+    const response = await fetch(translateUrl);
+    const data = await response.json();
+    
+    // Parse Google Translate response
+    let translatedText = '';
+    if (data && data[0]) {
+      translatedText = data[0].map(item => item[0]).join('');
+    }
+
+    console.log(`✅ Translation result: "${translatedText.substring(0, 100)}..."`);
+
+    res.json({
+      translatedText: translatedText || text,
+      sourceLanguage: source,
+      targetLanguage: target
+    });
+
+  } catch (error) {
+    console.error('❌ Translation error:', error);
+    // Return original text if translation fails
+    res.json({
+      translatedText: req.body.text,
+      error: 'Translation failed, returning original text'
+    });
+  }
+});
+
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚛 English Checkpoint Server READY on port ${PORT}`);
   console.log(`📡 Health check: http://0.0.0.0:${PORT}/api/health`);
