@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import LandingPage from './pages/LandingPage'
 import Home from './pages/Home'
 import QATraining from './pages/QATraining'
 import PronunciationTrainer from './pages/PronunciationTrainer'
@@ -33,8 +34,11 @@ function App() {
           {/* Payment success page */}
           <Route path="/payment-success" element={<PaymentSuccess />} />
           
-          {/* Public home page */}
-          <Route path="/" element={
+          {/* Landing page */}
+          <Route path="/" element={<LandingPage />} />
+          
+          {/* Dashboard home page */}
+          <Route path="/home" element={
             <div className="min-h-screen bg-gray-50">
               <Navbar />
               <main className="container mx-auto px-4 py-8">
