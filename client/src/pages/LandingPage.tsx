@@ -22,6 +22,55 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-purple-900 text-white">
+      {/* Top Navigation Bar */}
+      <div className="relative z-10 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-xl flex items-center justify-center">
+                <span className="text-black font-bold text-xl">🚛</span>
+              </div>
+              <div>
+                <h1 className="font-bold text-xl text-white">English Checkpoint</h1>
+                <p className="text-xs text-blue-200">Truck Driver Edition</p>
+              </div>
+            </div>
+            
+            {/* Sign In Button */}
+            {!user && (
+              <div className="flex items-center space-x-4">
+                <Link
+                  to="/login"
+                  className="text-blue-200 hover:text-white transition-colors font-medium"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/signup"
+                  className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-6 py-2 rounded-lg font-bold hover:from-yellow-500 hover:to-orange-600 transition-all duration-300"
+                >
+                  Get Started
+                </Link>
+              </div>
+            )}
+            
+            {/* User Menu if logged in */}
+            {user && (
+              <div className="flex items-center space-x-4">
+                <span className="text-blue-200">Welcome back!</span>
+                <Link
+                  to="/home"
+                  className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-6 py-2 rounded-lg font-bold hover:from-green-500 hover:to-blue-600 transition-all duration-300"
+                >
+                  Go to Dashboard
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         {/* Background Pattern */}
