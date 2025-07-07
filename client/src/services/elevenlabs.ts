@@ -82,16 +82,68 @@ class ElevenLabsService {
       
       const audio = new Audio(audioUrl)
       
+      // Mobile browser audio settings
+      audio.preload = 'auto'
+      audio.volume = 1.0
+      
       return new Promise((resolve, reject) => {
-        audio.onended = () => {
+        let hasResolved = false
+        
+        const cleanup = () => {
           URL.revokeObjectURL(audioUrl)
-          resolve()
+          audio.removeEventListener('ended', onEnded)
+          audio.removeEventListener('error', onError)
+          audio.removeEventListener('canplaythrough', onCanPlay)
         }
-        audio.onerror = () => {
-          URL.revokeObjectURL(audioUrl)
-          reject(new Error('Audio playback failed'))
+        
+        const onEnded = () => {
+          if (!hasResolved) {
+            hasResolved = true
+            cleanup()
+            console.log('✅ Audio playback completed')
+            resolve()
+          }
         }
-        audio.play()
+        
+        const onError = (error: any) => {
+          if (!hasResolved) {
+            hasResolved = true
+            cleanup()
+            console.error('❌ Audio playback error:', error)
+            reject(new Error('Audio playback failed'))
+          }
+        }
+        
+        const onCanPlay = async () => {
+          try {
+            console.log('🎵 Starting audio playback...')
+            await audio.play()
+          } catch (playError) {
+            console.error('❌ Play error:', playError)
+            if (!hasResolved) {
+              hasResolved = true
+              cleanup()
+              reject(new Error('Failed to start audio playback'))
+            }
+          }
+        }
+        
+        audio.addEventListener('ended', onEnded)
+        audio.addEventListener('error', onError)
+        audio.addEventListener('canplaythrough', onCanPlay)
+        
+        // Fallback timeout for mobile browsers
+        setTimeout(() => {
+          if (!hasResolved) {
+            console.warn('⚠️ Audio playback timeout')
+            hasResolved = true
+            cleanup()
+            resolve() // Don't fail, just continue
+          }
+        }, 30000) // 30 second timeout
+        
+        // Load the audio
+        audio.load()
       })
     } catch (error) {
       console.error('Failed to play audio:', error)

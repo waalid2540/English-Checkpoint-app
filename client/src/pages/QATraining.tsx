@@ -133,16 +133,34 @@ const QATraining = () => {
 
   const currentPrompt = translatedPrompts[currentIndex] || availablePrompts[currentIndex] || samplePrompts[0]
 
+  // Mobile audio initialization to handle browser policies
+  const initializeMobileAudio = async () => {
+    try {
+      // Create a silent audio to unlock audio context on mobile
+      const silentAudio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeCfLDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeCg==')
+      silentAudio.volume = 0.01
+      await silentAudio.play()
+      console.log('✅ Mobile audio context initialized')
+    } catch (error) {
+      console.log('ℹ️ Mobile audio initialization not needed or failed:', error)
+    }
+  }
+
   const playAll = async () => {
     if (!elevenLabsService) {
       console.error('ElevenLabs service not initialized')
       return
     }
 
+    // Initialize mobile audio first
+    await initializeMobileAudio()
+
     setIsPlaying(true)
     isPlayingRef.current = true
     setAudioLoading(false) // Don't show loading for play all
     setCurrentIndex(0)
+    
+    console.log('🚀 Starting playAll with mobile optimizations')
     
     try {
       // Play each conversation sequentially with ElevenLabs
@@ -163,10 +181,13 @@ const QATraining = () => {
         try {
           // Use original English text for audio, even if displaying translated
           const audioText = prompt.originalOfficer || prompt.officer
+          console.log(`🎵 Attempting to play officer audio: "${audioText.substring(0, 30)}..."`)
           await elevenLabsService.playText(audioText)
+          console.log(`✅ Officer audio completed successfully`)
         } catch (error) {
           console.error('❌ Officer audio failed:', error)
-          continue // Skip to next conversation if this one fails
+          // On mobile, continue to next part instead of skipping entire conversation
+          console.log('⏭️ Continuing to driver part despite officer audio failure')
         }
         
         // Check again after officer speech
@@ -181,10 +202,13 @@ const QATraining = () => {
         try {
           // Use original English text for audio, even if displaying translated
           const audioText = prompt.originalDriver || prompt.driver
+          console.log(`🎵 Attempting to play driver audio: "${audioText.substring(0, 30)}..."`)
           await elevenLabsService.playText(audioText)
+          console.log(`✅ Driver audio completed successfully`)
         } catch (error) {
           console.error('❌ Driver audio failed:', error)
-          continue // Skip to next conversation if this one fails
+          // On mobile, continue to next conversation instead of stopping
+          console.log('⏭️ Moving to next conversation despite driver audio failure')
         }
         
         setPlayingType(null)
@@ -323,6 +347,9 @@ const QATraining = () => {
             <>
               <div className="text-5xl mb-2">{isPlaying ? '⏹️' : '▶️'}</div>
               <div className="text-lg">{isPlaying ? 'STOP' : 'PLAY ALL'}</div>
+              <div className="text-xs mt-1 opacity-75">
+                {isPlaying ? 'Playing...' : 'Mobile Ready'}
+              </div>
             </>
           )}
         </button>
