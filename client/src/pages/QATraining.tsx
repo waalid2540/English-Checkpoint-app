@@ -369,9 +369,32 @@ const QATraining = () => {
               </div>
             )}
           </div>
-          <p className="text-xl text-blue-900 font-medium leading-relaxed">
-            "{currentPrompt.officer}"
-          </p>
+          
+          {/* English Text (Always First) */}
+          <div className="mb-4">
+            <div className="flex items-center mb-2">
+              <span className="text-sm font-semibold text-blue-700 bg-blue-200 px-2 py-1 rounded flex items-center">
+                🇺🇸 English (Audio)
+              </span>
+            </div>
+            <p className="text-xl text-blue-900 font-medium leading-relaxed">
+              "{availablePrompts[currentIndex]?.officer || currentPrompt.officer}"
+            </p>
+          </div>
+          
+          {/* Translated Text (If Different Language Selected) */}
+          {selectedLanguage !== 'en' && currentPrompt.officer && (
+            <div>
+              <div className="flex items-center mb-2">
+                <span className="text-sm font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded flex items-center">
+                  {translationService.getLanguageFlag(selectedLanguage)} {translationService.getLanguageName(selectedLanguage)}
+                </span>
+              </div>
+              <p className="text-lg text-blue-800 font-medium leading-relaxed opacity-90">
+                "{currentPrompt.officer}"
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Driver Answer */}
@@ -392,9 +415,32 @@ const QATraining = () => {
               </div>
             )}
           </div>
-          <p className="text-xl text-green-900 font-medium leading-relaxed">
-            "{currentPrompt.driver}"
-          </p>
+          
+          {/* English Text (Always First) */}
+          <div className="mb-4">
+            <div className="flex items-center mb-2">
+              <span className="text-sm font-semibold text-green-700 bg-green-200 px-2 py-1 rounded flex items-center">
+                🇺🇸 English (Audio)
+              </span>
+            </div>
+            <p className="text-xl text-green-900 font-medium leading-relaxed">
+              "{availablePrompts[currentIndex]?.driver || currentPrompt.driver}"
+            </p>
+          </div>
+          
+          {/* Translated Text (If Different Language Selected) */}
+          {selectedLanguage !== 'en' && currentPrompt.driver && (
+            <div>
+              <div className="flex items-center mb-2">
+                <span className="text-sm font-semibold text-green-600 bg-green-100 px-2 py-1 rounded flex items-center">
+                  {translationService.getLanguageFlag(selectedLanguage)} {translationService.getLanguageName(selectedLanguage)}
+                </span>
+              </div>
+              <p className="text-lg text-green-800 font-medium leading-relaxed opacity-90">
+                "{currentPrompt.driver}"
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
