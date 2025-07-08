@@ -15,6 +15,7 @@ import ResetPassword from './pages/ResetPassword'
 import ResendConfirmation from './pages/ResendConfirmation'
 import NotFound from './pages/NotFound'
 import PaymentSuccess from './pages/PaymentSuccess'
+import InstallApp from './pages/InstallApp'
 import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
 import RouteGuard from './components/RouteGuard'
@@ -34,6 +35,9 @@ function App() {
           
           {/* Payment success page */}
           <Route path="/payment-success" element={<PaymentSuccess />} />
+          
+          {/* Install app page */}
+          <Route path="/install" element={<InstallApp />} />
           
           {/* Landing page */}
           <Route path="/" element={<LandingPage />} />
