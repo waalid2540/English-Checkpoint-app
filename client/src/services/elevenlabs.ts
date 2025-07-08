@@ -76,38 +76,36 @@ class ElevenLabsService {
 
   async playText(text: string): Promise<void> {
     try {
-      console.log(`🎵 [Mobile Fix] Starting playText for: "${text.substring(0, 30)}..."`)
+      console.log(`🎵 [Mobile v2] Starting playText for: "${text.substring(0, 30)}..."`)
       
+      // Generate audio first
       const audioBuffer = await this.generateSpeech(text)
       const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' })
       const audioUrl = URL.createObjectURL(audioBlob)
       
-      const audio = new Audio()
-      
-      // Critical mobile settings
-      audio.preload = 'auto'
-      audio.volume = 1.0
-      audio.crossOrigin = 'anonymous'
+      console.log(`🎵 [Mobile v2] Audio blob created: ${audioBlob.size} bytes`)
       
       return new Promise((resolve, reject) => {
         let resolved = false
         let timeoutId: NodeJS.Timeout
-        let loadTimeoutId: NodeJS.Timeout
+        let audio: HTMLAudioElement
         
         const cleanup = () => {
           if (timeoutId) clearTimeout(timeoutId)
-          if (loadTimeoutId) clearTimeout(loadTimeoutId)
+          if (audio) {
+            audio.pause()
+            audio.currentTime = 0
+            audio.removeAttribute('src')
+            audio.load()
+          }
           URL.revokeObjectURL(audioUrl)
-          audio.pause()
-          audio.removeAttribute('src')
-          audio.load()
         }
         
         const safeResolve = () => {
           if (!resolved) {
             resolved = true
+            console.log('✅ [Mobile v2] Audio completed successfully')
             cleanup()
-            console.log('✅ [Mobile Fix] Audio completed successfully')
             resolve()
           }
         }
@@ -115,82 +113,58 @@ class ElevenLabsService {
         const safeReject = (error: string) => {
           if (!resolved) {
             resolved = true
+            console.error(`❌ [Mobile v2] Audio failed: ${error}`)
             cleanup()
-            console.error(`❌ [Mobile Fix] Audio failed: ${error}`)
             reject(new Error(error))
           }
         }
         
-        // Set up event listeners
-        audio.onended = safeResolve
-        audio.onerror = (e) => {
-          console.error('❌ [Mobile Fix] Audio error event:', e)
-          safeReject('Audio error event')
-        }
-        audio.onabort = () => safeReject('Audio aborted')
-        audio.onstalled = () => console.warn('⚠️ [Mobile Fix] Audio stalled but continuing...')
+        // Create fresh audio element for each play
+        audio = new Audio()
         
-        // Mobile-specific: wait for can play through and then play immediately
-        audio.oncanplaythrough = async () => {
+        // Mobile-optimized settings
+        audio.preload = 'auto'
+        audio.volume = 1.0
+        audio.muted = false
+        
+        // Set up event listeners before setting src
+        audio.addEventListener('ended', safeResolve)
+        audio.addEventListener('error', (e) => {
+          console.error('❌ [Mobile v2] Audio error:', e)
+          safeReject(`Audio error: ${e}`)
+        })
+        
+        audio.addEventListener('canplaythrough', async () => {
+          console.log('🎵 [Mobile v2] Can play through, starting playback...')
+          
           try {
-            console.log('🎵 [Mobile Fix] Audio can play through, attempting to start...')
-            if (loadTimeoutId) clearTimeout(loadTimeoutId)
-            
+            // Force play immediately when ready
             const playPromise = audio.play()
             
-            if (playPromise !== undefined) {
+            if (playPromise) {
               await playPromise
-              console.log('✅ [Mobile Fix] Play promise resolved')
+              console.log('✅ [Mobile v2] Play started successfully')
             }
           } catch (playError) {
-            console.error('❌ [Mobile Fix] Play promise rejected:', playError)
+            console.error('❌ [Mobile v2] Play failed:', playError)
             safeReject(`Play failed: ${playError}`)
           }
-        }
+        })
         
-        // Fallback for when canplaythrough doesn't fire
-        audio.oncanplay = async () => {
-          if (resolved) return
-          
-          console.log('🎵 [Mobile Fix] Audio can play (fallback), waiting 500ms then attempting to start...')
-          setTimeout(async () => {
-            if (resolved) return
-            
-            try {
-              const playPromise = audio.play()
-              
-              if (playPromise !== undefined) {
-                await playPromise
-                console.log('✅ [Mobile Fix] Play promise resolved (fallback)')
-              }
-            } catch (playError) {
-              console.error('❌ [Mobile Fix] Play promise rejected (fallback):', playError)
-              safeReject(`Play failed (fallback): ${playError}`)
-            }
-          }, 500)
-        }
-        
-        // Set timeout for complete audio playback - mobile needs longer timeout
+        // Mobile timeout - shorter to fail fast
         timeoutId = setTimeout(() => {
-          console.warn('⚠️ [Mobile Fix] Audio timeout after 25 seconds')
+          console.warn('⚠️ [Mobile v2] Audio timeout after 20 seconds')
           safeReject('Audio timeout')
-        }, 25000)
+        }, 20000)
         
-        // Set timeout for audio loading - if it doesn't load in 10 seconds, fail
-        loadTimeoutId = setTimeout(() => {
-          if (!resolved) {
-            console.warn('⚠️ [Mobile Fix] Audio loading timeout after 10 seconds')
-            safeReject('Audio loading timeout')
-          }
-        }, 10000)
-        
-        // Start loading
+        // Set source and load
         audio.src = audioUrl
+        console.log(`🎵 [Mobile v2] Audio source set, loading...`)
         audio.load()
         
       })
     } catch (error) {
-      console.error('❌ [Mobile Fix] playText error:', error)
+      console.error('❌ [Mobile v2] playText error:', error)
       throw error
     }
   }
