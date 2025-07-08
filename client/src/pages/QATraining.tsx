@@ -5,6 +5,7 @@ import { useSubscription } from '../hooks/useSubscription'
 import { useAuth } from '../contexts/AuthContext'
 import UpgradePopup from '../components/UpgradePopup'
 import { createElevenLabsService } from '../services/elevenlabs'
+import { createPrerecordedAudioService } from '../services/prerecorded-audio'
 import { translationService, SUPPORTED_LANGUAGES } from '../services/translation'
 
 const QATraining = () => {
@@ -60,6 +61,7 @@ const QATraining = () => {
   const [playingType, setPlayingType] = useState<'officer' | 'driver' | null>(null)
   const [showUpgradePopup, setShowUpgradePopup] = useState(false)
   const [elevenLabsService, setElevenLabsService] = useState<any>(null)
+  const [prerecordedService, setPrerecordedService] = useState<any>(null)
   const [audioLoading, setAudioLoading] = useState(false)
   const isPlayingRef = useRef(false)
   const [selectedLanguage, setSelectedLanguage] = useState('en')
@@ -67,17 +69,28 @@ const QATraining = () => {
   const [translating, setTranslating] = useState(false)
   const [showAllLanguages, setShowAllLanguages] = useState(false)
 
-  // Initialize ElevenLabs service
+  // Initialize audio services
   useEffect(() => {
+    console.log('🔧 Initializing audio services...')
+    
+    // Initialize prerecorded audio service (primary)
+    try {
+      const preService = createPrerecordedAudioService()
+      setPrerecordedService(preService)
+      console.log('✅ Prerecorded audio service initialized')
+    } catch (error) {
+      console.error('❌ Failed to initialize prerecorded audio:', error)
+    }
+    
+    // Initialize ElevenLabs service (fallback)
     console.log('🔧 Environment Variables Check:')
-    console.log('  All env vars:', Object.keys(import.meta.env))
     console.log('  VITE_ELEVENLABS_API_KEY:', import.meta.env.VITE_ELEVENLABS_API_KEY ? 'EXISTS' : 'MISSING')
     console.log('  VITE_ELEVENLABS_VOICE_ID:', import.meta.env.VITE_ELEVENLABS_VOICE_ID ? 'EXISTS' : 'MISSING')
     
     try {
       const service = createElevenLabsService()
       setElevenLabsService(service)
-      console.log('✅ ElevenLabs service initialized')
+      console.log('✅ ElevenLabs service initialized as fallback')
     } catch (error) {
       console.error('❌ Failed to initialize ElevenLabs:', error)
     }
@@ -136,12 +149,12 @@ const QATraining = () => {
   // Mobile audio initialization to handle browser policies
   const initializeMobileAudio = async () => {
     try {
-      console.log('🔧 [Mobile v3] Initializing mobile audio context...')
+      console.log('🔧 [Prerecorded] Initializing mobile audio context...')
       
-      // Initialize the ElevenLabs service audio element from user interaction
-      if (elevenLabsService) {
+      // Initialize the prerecorded audio service audio element from user interaction
+      if (prerecordedService) {
         // Create the audio element now during user interaction
-        const audioElement = elevenLabsService.initializeAudioElement()
+        const audioElement = prerecordedService.initializeAudioElement()
         
         // Create a silent audio to unlock audio context
         const silentAudio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeCfLDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeCg==')
@@ -165,7 +178,11 @@ const QATraining = () => {
         audioElement.muted = false
         audioElement.volume = 1.0
         
-        console.log('✅ [Mobile v3] Audio elements initialized from user interaction')
+        console.log('✅ [Prerecorded] Audio elements initialized from user interaction')
+        
+        // Preload first few audio files
+        const questionIds = availablePrompts.slice(0, 5).map((_, index) => index + 1)
+        await prerecordedService.preloadAudio(questionIds)
       }
       
       // Also check if Web Audio API is available and unlock it
@@ -174,23 +191,23 @@ const QATraining = () => {
         const audioContext = new AudioContextClass()
         
         if (audioContext.state === 'suspended') {
-          console.log('🔧 [Mobile v3] Resuming suspended audio context...')
+          console.log('🔧 [Prerecorded] Resuming suspended audio context...')
           await audioContext.resume()
         }
         
-        console.log('✅ [Mobile v3] Web Audio API context state:', audioContext.state)
+        console.log('✅ [Prerecorded] Web Audio API context state:', audioContext.state)
         audioContext.close()
       }
       
     } catch (error) {
-      console.warn('⚠️ [Mobile v3] Audio initialization failed:', error)
+      console.warn('⚠️ [Prerecorded] Audio initialization failed:', error)
       // Don't throw, just continue
     }
   }
 
   const playAll = async () => {
-    if (!elevenLabsService) {
-      console.error('ElevenLabs service not initialized')
+    if (!prerecordedService) {
+      console.error('Prerecorded audio service not initialized')
       return
     }
 
@@ -202,71 +219,80 @@ const QATraining = () => {
     setAudioLoading(false) // Don't show loading for play all
     setCurrentIndex(0)
     
-    console.log('🚀 Starting playAll with mobile optimizations')
+    console.log('🚀 [Prerecorded] Starting playAll with prerecorded audio')
     
     try {
       // Play each conversation sequentially with mobile fixes
       for (let i = 0; i < availablePrompts.length && isPlayingRef.current; i++) {
-        console.log(`🚀 [Mobile Fix] Starting conversation ${i + 1}/${availablePrompts.length}`)
+        console.log(`🚀 [Prerecorded] Starting conversation ${i + 1}/${availablePrompts.length}`)
         
         const prompt = availablePrompts[i]
+        const questionId = prompt.id || (i + 1)
         setCurrentIndex(i)
         
         try {
           // Play officer part
           setPlayingType('officer')
-          console.log(`👮‍♂️ [Mobile v3] Playing officer: "${prompt.officer.substring(0, 40)}..."`)
-          
-          const audioText1 = prompt.originalOfficer || prompt.officer
+          console.log(`👮‍♂️ [Prerecorded] Playing officer for question ${questionId}`)
           
           try {
-            await elevenLabsService.playText(audioText1)
-            console.log(`✅ [Mobile v3] Officer audio completed`)
+            await prerecordedService.playAudio(questionId, 'officer')
+            console.log(`✅ [Prerecorded] Officer audio completed for question ${questionId}`)
           } catch (audioError) {
-            console.warn(`⚠️ [Mobile v3] Officer audio failed, continuing:`, audioError)
+            console.warn(`⚠️ [Prerecorded] Officer audio failed for question ${questionId}, trying fallback:`, audioError)
+            
+            // Fallback to ElevenLabs TTS if prerecorded fails
+            if (elevenLabsService) {
+              const audioText = prompt.originalOfficer || prompt.officer
+              await elevenLabsService.playText(audioText)
+            }
           }
           
           // Quick check if still playing
           if (!isPlayingRef.current) {
-            console.log('🛑 [Mobile v3] User stopped during officer speech')
+            console.log('🛑 [Prerecorded] User stopped during officer speech')
             break
           }
           
           // Short pause
-          console.log('⏸️ [Mobile v3] Pause between officer and driver...')
+          console.log('⏸️ [Prerecorded] Pause between officer and driver...')
           await new Promise(resolve => setTimeout(resolve, 800))
           
           if (!isPlayingRef.current) break
           
           // Play driver part
           setPlayingType('driver')
-          console.log(`🚛 [Mobile v3] Playing driver: "${prompt.driver.substring(0, 40)}..."`)
-          
-          const audioText2 = prompt.originalDriver || prompt.driver
+          console.log(`🚛 [Prerecorded] Playing driver for question ${questionId}`)
           
           try {
-            await elevenLabsService.playText(audioText2)
-            console.log(`✅ [Mobile v3] Driver audio completed`)
+            await prerecordedService.playAudio(questionId, 'driver')
+            console.log(`✅ [Prerecorded] Driver audio completed for question ${questionId}`)
           } catch (audioError) {
-            console.warn(`⚠️ [Mobile v3] Driver audio failed, continuing:`, audioError)
+            console.warn(`⚠️ [Prerecorded] Driver audio failed for question ${questionId}, trying fallback:`, audioError)
+            
+            // Fallback to ElevenLabs TTS if prerecorded fails
+            if (elevenLabsService) {
+              const audioText = prompt.originalDriver || prompt.driver
+              await elevenLabsService.playText(audioText)
+            }
           }
           
           setPlayingType(null)
           
           // Pause between conversations
           if (i < availablePrompts.length - 1 && isPlayingRef.current) {
-            console.log(`⏸️ [Mobile v3] Moving to next conversation...`)
+            console.log(`⏸️ [Prerecorded] Moving to next conversation...`)
             await new Promise(resolve => setTimeout(resolve, 1200))
           }
           
-          console.log(`✅ [Mobile v3] Completed conversation ${i + 1}`)
+          console.log(`✅ [Prerecorded] Completed conversation ${i + 1}`)
         } catch (conversationError) {
-          console.error(`❌ [Mobile v3] Error in conversation ${i + 1}:`, conversationError)
+          console.error(`❌ [Prerecorded] Error in conversation ${i + 1}:`, conversationError)
           setPlayingType(null)
           
           // Continue to next conversation on error
           if (i < availablePrompts.length - 1 && isPlayingRef.current) {
-            console.log(`⏭️ [Mobile v3] Skipping to next conversation after error...`)
+            console.log(`⏭️ [Prerecorded] Skipping to next conversation after error...`)
             await new Promise(resolve => setTimeout(resolve, 1000))
           }
           
@@ -275,15 +301,15 @@ const QATraining = () => {
         }
       }
       
-      console.log('✅ Finished playing all conversations')
+      console.log('✅ [Prerecorded] Finished playing all conversations')
     } catch (error) {
-      console.error('❌ Play all error:', error)
+      console.error('❌ [Prerecorded] Play all error:', error)
     } finally {
       setIsPlaying(false)
       isPlayingRef.current = false
       setAudioLoading(false)
       setPlayingType(null)
-      console.log('🏁 Play all completed')
+      console.log('🏁 [Prerecorded] Play all completed')
     }
   }
 
@@ -388,7 +414,7 @@ const QATraining = () => {
       <div className="text-center mb-8">
         <button
           onClick={isPlaying ? stopAll : playAll}
-          disabled={audioLoading || !elevenLabsService}
+          disabled={audioLoading || !prerecordedService}
           className={`w-40 h-40 rounded-full text-white font-bold shadow-lg disabled:bg-gray-400 ${
             isPlaying ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
           }`}
@@ -396,20 +422,20 @@ const QATraining = () => {
           {audioLoading ? (
             <>
               <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-              <div className="text-sm">Loading ElevenLabs...</div>
+              <div className="text-sm">Loading Audio...</div>
             </>
           ) : (
             <>
               <div className="text-5xl mb-2">{isPlaying ? '⏹️' : '▶️'}</div>
               <div className="text-lg">{isPlaying ? 'STOP' : 'PLAY ALL'}</div>
               <div className="text-xs mt-1 opacity-75">
-                {isPlaying ? 'Playing...' : 'Mobile Ready'}
+                {isPlaying ? 'Playing...' : 'Prerecorded Audio'}
               </div>
             </>
           )}
         </button>
-        {!elevenLabsService && (
-          <p className="text-red-500 text-sm mt-2">⚠️ ElevenLabs not initialized</p>
+        {!prerecordedService && (
+          <p className="text-red-500 text-sm mt-2">⚠️ Audio service not initialized</p>
         )}
       </div>
 
