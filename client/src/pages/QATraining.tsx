@@ -206,10 +206,12 @@ const QATraining = () => {
   }
 
   const playAll = async () => {
-    if (!prerecordedService) {
-      console.error('Prerecorded audio service not initialized')
+    if (!prerecordedService && !elevenLabsService) {
+      console.error('No audio service available')
       return
     }
+
+    const audioService = prerecordedService || elevenLabsService
 
     // Initialize mobile audio first
     await initializeMobileAudio()
@@ -233,18 +235,28 @@ const QATraining = () => {
         try {
           // Play officer part
           setPlayingType('officer')
-          console.log(`👮‍♂️ [Prerecorded] Playing officer for question ${questionId}`)
+          console.log(`👮‍♂️ [Audio] Playing officer for question ${questionId}`)
           
           try {
-            await prerecordedService.playAudio(questionId, 'officer')
-            console.log(`✅ [Prerecorded] Officer audio completed for question ${questionId}`)
+            if (prerecordedService) {
+              // Try prerecorded audio first
+              console.log(`🎵 [Audio] Trying prerecorded officer audio for question ${questionId}`)
+              await prerecordedService.playAudio(questionId, 'officer')
+              console.log(`✅ [Audio] Prerecorded officer audio completed for question ${questionId}`)
+            } else {
+              throw new Error('No prerecorded service, using TTS fallback')
+            }
           } catch (audioError) {
-            console.warn(`⚠️ [Prerecorded] Officer audio failed for question ${questionId}, trying fallback:`, audioError)
+            console.warn(`⚠️ [Audio] Prerecorded officer audio failed for question ${questionId}, using TTS fallback:`, audioError)
             
-            // Fallback to ElevenLabs TTS if prerecorded fails
+            // Fallback to ElevenLabs TTS
             if (elevenLabsService) {
+              console.log(`🎵 [Audio] Using TTS fallback for officer question ${questionId}`)
               const audioText = prompt.originalOfficer || prompt.officer
               await elevenLabsService.playText(audioText)
+              console.log(`✅ [Audio] TTS officer audio completed for question ${questionId}`)
+            } else {
+              console.error(`❌ [Audio] No TTS service available for officer question ${questionId}`)
             }
           }
           
@@ -262,18 +274,28 @@ const QATraining = () => {
           
           // Play driver part
           setPlayingType('driver')
-          console.log(`🚛 [Prerecorded] Playing driver for question ${questionId}`)
+          console.log(`🚛 [Audio] Playing driver for question ${questionId}`)
           
           try {
-            await prerecordedService.playAudio(questionId, 'driver')
-            console.log(`✅ [Prerecorded] Driver audio completed for question ${questionId}`)
+            if (prerecordedService) {
+              // Try prerecorded audio first
+              console.log(`🎵 [Audio] Trying prerecorded driver audio for question ${questionId}`)
+              await prerecordedService.playAudio(questionId, 'driver')
+              console.log(`✅ [Audio] Prerecorded driver audio completed for question ${questionId}`)
+            } else {
+              throw new Error('No prerecorded service, using TTS fallback')
+            }
           } catch (audioError) {
-            console.warn(`⚠️ [Prerecorded] Driver audio failed for question ${questionId}, trying fallback:`, audioError)
+            console.warn(`⚠️ [Audio] Prerecorded driver audio failed for question ${questionId}, using TTS fallback:`, audioError)
             
-            // Fallback to ElevenLabs TTS if prerecorded fails
+            // Fallback to ElevenLabs TTS
             if (elevenLabsService) {
+              console.log(`🎵 [Audio] Using TTS fallback for driver question ${questionId}`)
               const audioText = prompt.originalDriver || prompt.driver
               await elevenLabsService.playText(audioText)
+              console.log(`✅ [Audio] TTS driver audio completed for question ${questionId}`)
+            } else {
+              console.error(`❌ [Audio] No TTS service available for driver question ${questionId}`)
             }
           }
           
@@ -414,7 +436,7 @@ const QATraining = () => {
       <div className="text-center mb-8">
         <button
           onClick={isPlaying ? stopAll : playAll}
-          disabled={audioLoading || !prerecordedService}
+          disabled={audioLoading || (!prerecordedService && !elevenLabsService)}
           className={`w-40 h-40 rounded-full text-white font-bold shadow-lg disabled:bg-gray-400 ${
             isPlaying ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
           }`}
@@ -429,13 +451,19 @@ const QATraining = () => {
               <div className="text-5xl mb-2">{isPlaying ? '⏹️' : '▶️'}</div>
               <div className="text-lg">{isPlaying ? 'STOP' : 'PLAY ALL'}</div>
               <div className="text-xs mt-1 opacity-75">
-                {isPlaying ? 'Playing...' : 'Prerecorded Audio'}
+                {isPlaying ? 'Playing...' : prerecordedService ? 'Prerecorded + TTS' : 'TTS Ready'}
               </div>
             </>
           )}
         </button>
-        {!prerecordedService && (
-          <p className="text-red-500 text-sm mt-2">⚠️ Audio service not initialized</p>
+        {!prerecordedService && !elevenLabsService && (
+          <p className="text-red-500 text-sm mt-2">⚠️ No audio service available</p>
+        )}
+        {prerecordedService && (
+          <p className="text-green-500 text-sm mt-2">✅ Prerecorded audio ready</p>
+        )}
+        {!prerecordedService && elevenLabsService && (
+          <p className="text-yellow-500 text-sm mt-2">⚠️ Using TTS fallback only</p>
         )}
       </div>
 
