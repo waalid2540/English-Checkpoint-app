@@ -9,6 +9,7 @@ interface ElevenLabsConfig {
 
 class ElevenLabsService {
   private config: ElevenLabsConfig
+  private audioElement: HTMLAudioElement | null = null
 
   constructor(apiKey: string, voiceId: string) {
     this.config = {
@@ -16,6 +17,18 @@ class ElevenLabsService {
       voiceId,
       baseUrl: 'https://api.elevenlabs.io/v1'
     }
+  }
+
+  // Initialize a single audio element for mobile compatibility
+  public initializeAudioElement(): HTMLAudioElement {
+    if (!this.audioElement) {
+      console.log('🎵 [Mobile v3] Creating single audio element for reuse')
+      this.audioElement = new Audio()
+      this.audioElement.preload = 'auto'
+      this.audioElement.volume = 1.0
+      this.audioElement.muted = false
+    }
+    return this.audioElement
   }
 
   // Add natural pauses to text for slower, clearer speech
@@ -76,35 +89,32 @@ class ElevenLabsService {
 
   async playText(text: string): Promise<void> {
     try {
-      console.log(`🎵 [Mobile v2] Starting playText for: "${text.substring(0, 30)}..."`)
+      console.log(`🎵 [Mobile v3] Starting playText for: "${text.substring(0, 30)}..."`)
       
       // Generate audio first
       const audioBuffer = await this.generateSpeech(text)
       const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' })
       const audioUrl = URL.createObjectURL(audioBlob)
       
-      console.log(`🎵 [Mobile v2] Audio blob created: ${audioBlob.size} bytes`)
+      console.log(`🎵 [Mobile v3] Audio blob created: ${audioBlob.size} bytes`)
+      
+      // Use single audio element for mobile compatibility
+      const audio = this.initializeAudioElement()
       
       return new Promise((resolve, reject) => {
         let resolved = false
         let timeoutId: NodeJS.Timeout
-        let audio: HTMLAudioElement
         
         const cleanup = () => {
           if (timeoutId) clearTimeout(timeoutId)
-          if (audio) {
-            audio.pause()
-            audio.currentTime = 0
-            audio.removeAttribute('src')
-            audio.load()
-          }
+          // Don't destroy the audio element, just clean up URL
           URL.revokeObjectURL(audioUrl)
         }
         
         const safeResolve = () => {
           if (!resolved) {
             resolved = true
-            console.log('✅ [Mobile v2] Audio completed successfully')
+            console.log('✅ [Mobile v3] Audio completed successfully')
             cleanup()
             resolve()
           }
@@ -113,58 +123,54 @@ class ElevenLabsService {
         const safeReject = (error: string) => {
           if (!resolved) {
             resolved = true
-            console.error(`❌ [Mobile v2] Audio failed: ${error}`)
+            console.error(`❌ [Mobile v3] Audio failed: ${error}`)
             cleanup()
             reject(new Error(error))
           }
         }
         
-        // Create fresh audio element for each play
-        audio = new Audio()
-        
-        // Mobile-optimized settings
-        audio.preload = 'auto'
-        audio.volume = 1.0
-        audio.muted = false
-        
-        // Set up event listeners before setting src
-        audio.addEventListener('ended', safeResolve)
-        audio.addEventListener('error', (e) => {
-          console.error('❌ [Mobile v2] Audio error:', e)
+        // Remove old event listeners and add new ones
+        audio.onended = safeResolve
+        audio.onerror = (e) => {
+          console.error('❌ [Mobile v3] Audio error:', e)
           safeReject(`Audio error: ${e}`)
-        })
+        }
         
-        audio.addEventListener('canplaythrough', async () => {
-          console.log('🎵 [Mobile v2] Can play through, starting playback...')
+        audio.oncanplaythrough = async () => {
+          console.log('🎵 [Mobile v3] Can play through, starting playback...')
           
           try {
-            // Force play immediately when ready
+            // Stop current playback if any
+            audio.pause()
+            audio.currentTime = 0
+            
+            // Start new playback
             const playPromise = audio.play()
             
             if (playPromise) {
               await playPromise
-              console.log('✅ [Mobile v2] Play started successfully')
+              console.log('✅ [Mobile v3] Play started successfully')
             }
           } catch (playError) {
-            console.error('❌ [Mobile v2] Play failed:', playError)
+            console.error('❌ [Mobile v3] Play failed:', playError)
             safeReject(`Play failed: ${playError}`)
           }
-        })
+        }
         
-        // Mobile timeout - shorter to fail fast
+        // Mobile timeout
         timeoutId = setTimeout(() => {
-          console.warn('⚠️ [Mobile v2] Audio timeout after 20 seconds')
+          console.warn('⚠️ [Mobile v3] Audio timeout after 20 seconds')
           safeReject('Audio timeout')
         }, 20000)
         
         // Set source and load
         audio.src = audioUrl
-        console.log(`🎵 [Mobile v2] Audio source set, loading...`)
+        console.log(`🎵 [Mobile v3] Audio source set, loading...`)
         audio.load()
         
       })
     } catch (error) {
-      console.error('❌ [Mobile v2] playText error:', error)
+      console.error('❌ [Mobile v3] playText error:', error)
       throw error
     }
   }

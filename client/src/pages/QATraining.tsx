@@ -136,23 +136,37 @@ const QATraining = () => {
   // Mobile audio initialization to handle browser policies
   const initializeMobileAudio = async () => {
     try {
-      console.log('🔧 [Mobile v2] Initializing mobile audio context...')
+      console.log('🔧 [Mobile v3] Initializing mobile audio context...')
       
-      // Create multiple silent audio attempts for better mobile compatibility
-      const silentAudio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeCfLDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeCg==')
-      silentAudio.volume = 0.01
-      silentAudio.muted = false
-      
-      // Try to unlock audio context
-      const playPromise = silentAudio.play()
-      if (playPromise) {
-        await playPromise
+      // Initialize the ElevenLabs service audio element from user interaction
+      if (elevenLabsService) {
+        // Create the audio element now during user interaction
+        const audioElement = elevenLabsService.initializeAudioElement()
+        
+        // Create a silent audio to unlock audio context
+        const silentAudio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeCfLDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeCg==')
+        silentAudio.volume = 0.01
+        silentAudio.muted = false
+        
+        // Try to unlock audio context with both elements
+        const playPromise = silentAudio.play()
+        if (playPromise) {
+          await playPromise
+        }
+        
+        // Also unlock the main audio element
+        audioElement.volume = 0.01
+        audioElement.muted = true
+        const mainPlayPromise = audioElement.play()
+        if (mainPlayPromise) {
+          await mainPlayPromise
+          audioElement.pause()
+        }
+        audioElement.muted = false
+        audioElement.volume = 1.0
+        
+        console.log('✅ [Mobile v3] Audio elements initialized from user interaction')
       }
-      
-      // Wait a bit for audio context to be properly unlocked
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      console.log('✅ [Mobile v2] Audio context initialized successfully')
       
       // Also check if Web Audio API is available and unlock it
       if (typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined') {
@@ -160,16 +174,16 @@ const QATraining = () => {
         const audioContext = new AudioContextClass()
         
         if (audioContext.state === 'suspended') {
-          console.log('🔧 [Mobile v2] Resuming suspended audio context...')
+          console.log('🔧 [Mobile v3] Resuming suspended audio context...')
           await audioContext.resume()
         }
         
-        console.log('✅ [Mobile v2] Web Audio API context state:', audioContext.state)
+        console.log('✅ [Mobile v3] Web Audio API context state:', audioContext.state)
         audioContext.close()
       }
       
     } catch (error) {
-      console.warn('⚠️ [Mobile v2] Audio initialization failed:', error)
+      console.warn('⚠️ [Mobile v3] Audio initialization failed:', error)
       // Don't throw, just continue
     }
   }
@@ -201,93 +215,58 @@ const QATraining = () => {
         try {
           // Play officer part
           setPlayingType('officer')
-          console.log(`👮‍♂️ [Mobile v2] Playing officer: "${prompt.officer.substring(0, 40)}..."`)
+          console.log(`👮‍♂️ [Mobile v3] Playing officer: "${prompt.officer.substring(0, 40)}..."`)
           
           const audioText1 = prompt.originalOfficer || prompt.officer
           
-          // Retry mechanism for mobile
-          let attempts = 0
-          const maxAttempts = 2
-          
-          while (attempts < maxAttempts) {
-            try {
-              await elevenLabsService.playText(audioText1)
-              console.log(`✅ [Mobile v2] Officer audio succeeded on attempt ${attempts + 1}`)
-              break
-            } catch (audioError) {
-              attempts++
-              console.warn(`⚠️ [Mobile v2] Officer audio failed on attempt ${attempts}:`, audioError)
-              
-              if (attempts < maxAttempts) {
-                console.log(`🔄 [Mobile v2] Retrying officer audio in 500ms...`)
-                await new Promise(resolve => setTimeout(resolve, 500))
-                // Re-initialize audio context for retry
-                await initializeMobileAudio()
-              } else {
-                console.error(`❌ [Mobile v2] Officer audio failed after ${maxAttempts} attempts`)
-                // Continue to driver part even if officer fails
-              }
-            }
+          try {
+            await elevenLabsService.playText(audioText1)
+            console.log(`✅ [Mobile v3] Officer audio completed`)
+          } catch (audioError) {
+            console.warn(`⚠️ [Mobile v3] Officer audio failed, continuing:`, audioError)
           }
           
           // Quick check if still playing
           if (!isPlayingRef.current) {
-            console.log('🛑 [Mobile v2] User stopped during officer speech')
+            console.log('🛑 [Mobile v3] User stopped during officer speech')
             break
           }
           
           // Short pause
-          console.log('⏸️ [Mobile v2] Pause between officer and driver...')
+          console.log('⏸️ [Mobile v3] Pause between officer and driver...')
           await new Promise(resolve => setTimeout(resolve, 800))
           
           if (!isPlayingRef.current) break
           
           // Play driver part
           setPlayingType('driver')
-          console.log(`🚛 [Mobile v2] Playing driver: "${prompt.driver.substring(0, 40)}..."`)
+          console.log(`🚛 [Mobile v3] Playing driver: "${prompt.driver.substring(0, 40)}..."`)
           
           const audioText2 = prompt.originalDriver || prompt.driver
           
-          // Retry mechanism for driver part too
-          attempts = 0
-          
-          while (attempts < maxAttempts) {
-            try {
-              await elevenLabsService.playText(audioText2)
-              console.log(`✅ [Mobile v2] Driver audio succeeded on attempt ${attempts + 1}`)
-              break
-            } catch (audioError) {
-              attempts++
-              console.warn(`⚠️ [Mobile v2] Driver audio failed on attempt ${attempts}:`, audioError)
-              
-              if (attempts < maxAttempts) {
-                console.log(`🔄 [Mobile v2] Retrying driver audio in 500ms...`)
-                await new Promise(resolve => setTimeout(resolve, 500))
-                // Re-initialize audio context for retry
-                await initializeMobileAudio()
-              } else {
-                console.error(`❌ [Mobile v2] Driver audio failed after ${maxAttempts} attempts`)
-                // Continue to next conversation
-              }
-            }
+          try {
+            await elevenLabsService.playText(audioText2)
+            console.log(`✅ [Mobile v3] Driver audio completed`)
+          } catch (audioError) {
+            console.warn(`⚠️ [Mobile v3] Driver audio failed, continuing:`, audioError)
           }
           
           setPlayingType(null)
           
           // Pause between conversations
           if (i < availablePrompts.length - 1 && isPlayingRef.current) {
-            console.log(`⏸️ [Mobile v2] Moving to next conversation...`)
+            console.log(`⏸️ [Mobile v3] Moving to next conversation...`)
             await new Promise(resolve => setTimeout(resolve, 1200))
           }
           
-          console.log(`✅ [Mobile v2] Completed conversation ${i + 1}`)
+          console.log(`✅ [Mobile v3] Completed conversation ${i + 1}`)
         } catch (conversationError) {
-          console.error(`❌ [Mobile v2] Error in conversation ${i + 1}:`, conversationError)
+          console.error(`❌ [Mobile v3] Error in conversation ${i + 1}:`, conversationError)
           setPlayingType(null)
           
           // Continue to next conversation on error
           if (i < availablePrompts.length - 1 && isPlayingRef.current) {
-            console.log(`⏭️ [Mobile v2] Skipping to next conversation after error...`)
+            console.log(`⏭️ [Mobile v3] Skipping to next conversation after error...`)
             await new Promise(resolve => setTimeout(resolve, 1000))
           }
           
