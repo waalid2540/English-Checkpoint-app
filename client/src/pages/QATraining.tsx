@@ -5,7 +5,6 @@ import { useSubscription } from '../hooks/useSubscription'
 import { useAuth } from '../contexts/AuthContext'
 import UpgradePopup from '../components/UpgradePopup'
 import { createElevenLabsService } from '../services/elevenlabs'
-import { createPrerecordedAudioService } from '../services/prerecorded-audio'
 import { translationService, SUPPORTED_LANGUAGES } from '../services/translation'
 
 const QATraining = () => {
@@ -61,7 +60,6 @@ const QATraining = () => {
   const [playingType, setPlayingType] = useState<'officer' | 'driver' | null>(null)
   const [showUpgradePopup, setShowUpgradePopup] = useState(false)
   const [elevenLabsService, setElevenLabsService] = useState<any>(null)
-  const [prerecordedService, setPrerecordedService] = useState<any>(null)
   const [audioLoading, setAudioLoading] = useState(false)
   const isPlayingRef = useRef(false)
   const [selectedLanguage, setSelectedLanguage] = useState('en')
@@ -69,28 +67,17 @@ const QATraining = () => {
   const [translating, setTranslating] = useState(false)
   const [showAllLanguages, setShowAllLanguages] = useState(false)
 
-  // Initialize audio services
+  // Initialize ElevenLabs service
   useEffect(() => {
-    console.log('🔧 Initializing audio services...')
-    
-    // Initialize prerecorded audio service (primary)
-    try {
-      const preService = createPrerecordedAudioService()
-      setPrerecordedService(preService)
-      console.log('✅ Prerecorded audio service initialized')
-    } catch (error) {
-      console.error('❌ Failed to initialize prerecorded audio:', error)
-    }
-    
-    // Initialize ElevenLabs service (fallback)
     console.log('🔧 Environment Variables Check:')
+    console.log('  All env vars:', Object.keys(import.meta.env))
     console.log('  VITE_ELEVENLABS_API_KEY:', import.meta.env.VITE_ELEVENLABS_API_KEY ? 'EXISTS' : 'MISSING')
     console.log('  VITE_ELEVENLABS_VOICE_ID:', import.meta.env.VITE_ELEVENLABS_VOICE_ID ? 'EXISTS' : 'MISSING')
     
     try {
       const service = createElevenLabsService()
       setElevenLabsService(service)
-      console.log('✅ ElevenLabs service initialized as fallback')
+      console.log('✅ ElevenLabs service initialized')
     } catch (error) {
       console.error('❌ Failed to initialize ElevenLabs:', error)
     }
@@ -149,69 +136,21 @@ const QATraining = () => {
   // Mobile audio initialization to handle browser policies
   const initializeMobileAudio = async () => {
     try {
-      console.log('🔧 [Prerecorded] Initializing mobile audio context...')
-      
-      // Initialize the prerecorded audio service audio element from user interaction
-      if (prerecordedService) {
-        // Create the audio element now during user interaction
-        const audioElement = prerecordedService.initializeAudioElement()
-        
-        // Create a silent audio to unlock audio context
-        const silentAudio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeCfLDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeCg==')
-        silentAudio.volume = 0.01
-        silentAudio.muted = false
-        
-        // Try to unlock audio context with both elements
-        const playPromise = silentAudio.play()
-        if (playPromise) {
-          await playPromise
-        }
-        
-        // Also unlock the main audio element
-        audioElement.volume = 0.01
-        audioElement.muted = true
-        const mainPlayPromise = audioElement.play()
-        if (mainPlayPromise) {
-          await mainPlayPromise
-          audioElement.pause()
-        }
-        audioElement.muted = false
-        audioElement.volume = 1.0
-        
-        console.log('✅ [Prerecorded] Audio elements initialized from user interaction')
-        
-        // Preload first few audio files
-        const questionIds = availablePrompts.slice(0, 5).map((_, index) => index + 1)
-        await prerecordedService.preloadAudio(questionIds)
-      }
-      
-      // Also check if Web Audio API is available and unlock it
-      if (typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined') {
-        const AudioContextClass = AudioContext || webkitAudioContext
-        const audioContext = new AudioContextClass()
-        
-        if (audioContext.state === 'suspended') {
-          console.log('🔧 [Prerecorded] Resuming suspended audio context...')
-          await audioContext.resume()
-        }
-        
-        console.log('✅ [Prerecorded] Web Audio API context state:', audioContext.state)
-        audioContext.close()
-      }
-      
+      // Create a silent audio to unlock audio context on mobile
+      const silentAudio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeCfLDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeDl1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeCg==')
+      silentAudio.volume = 0.01
+      await silentAudio.play()
+      console.log('✅ Mobile audio context initialized')
     } catch (error) {
-      console.warn('⚠️ [Prerecorded] Audio initialization failed:', error)
-      // Don't throw, just continue
+      console.log('ℹ️ Mobile audio initialization not needed or failed:', error)
     }
   }
 
   const playAll = async () => {
-    if (!prerecordedService && !elevenLabsService) {
-      console.error('No audio service available')
+    if (!elevenLabsService) {
+      console.error('ElevenLabs service not initialized')
       return
     }
-
-    const audioService = prerecordedService || elevenLabsService
 
     // Initialize mobile audio first
     await initializeMobileAudio()
@@ -221,117 +160,75 @@ const QATraining = () => {
     setAudioLoading(false) // Don't show loading for play all
     setCurrentIndex(0)
     
-    console.log('🚀 [Prerecorded] Starting playAll with prerecorded audio')
+    console.log('🚀 Starting playAll with mobile optimizations')
     
     try {
-      // Play each conversation sequentially with mobile fixes
-      for (let i = 0; i < availablePrompts.length && isPlayingRef.current; i++) {
-        console.log(`🚀 [Prerecorded] Starting conversation ${i + 1}/${availablePrompts.length}`)
+      // Play each conversation sequentially with ElevenLabs
+      for (let i = 0; i < availablePrompts.length; i++) {
+        // Check if user stopped playback
+        if (!isPlayingRef.current) {
+          console.log('🛑 User stopped playback')
+          break
+        }
         
         const prompt = availablePrompts[i]
-        const questionId = prompt.id || (i + 1)
         setCurrentIndex(i)
+        console.log(`🎵 Playing conversation ${i + 1}/${availablePrompts.length}`)
         
+        // Play officer part (always in English for best audio quality)
+        setPlayingType('officer')
+        console.log(`👮‍♂️ Officer: ${prompt.officer}`)
         try {
-          // Play officer part
-          setPlayingType('officer')
-          console.log(`👮‍♂️ [Audio] Playing officer for question ${questionId}`)
-          
-          try {
-            if (prerecordedService) {
-              // Try prerecorded audio first
-              console.log(`🎵 [Audio] Trying prerecorded officer audio for question ${questionId}`)
-              await prerecordedService.playAudio(questionId, 'officer')
-              console.log(`✅ [Audio] Prerecorded officer audio completed for question ${questionId}`)
-            } else {
-              throw new Error('No prerecorded service, using TTS fallback')
-            }
-          } catch (audioError) {
-            console.warn(`⚠️ [Audio] Prerecorded officer audio failed for question ${questionId}, using TTS fallback:`, audioError)
-            
-            // Fallback to ElevenLabs TTS
-            if (elevenLabsService) {
-              console.log(`🎵 [Audio] Using TTS fallback for officer question ${questionId}`)
-              const audioText = prompt.originalOfficer || prompt.officer
-              await elevenLabsService.playText(audioText)
-              console.log(`✅ [Audio] TTS officer audio completed for question ${questionId}`)
-            } else {
-              console.error(`❌ [Audio] No TTS service available for officer question ${questionId}`)
-            }
-          }
-          
-          // Quick check if still playing
-          if (!isPlayingRef.current) {
-            console.log('🛑 [Prerecorded] User stopped during officer speech')
-            break
-          }
-          
-          // Short pause
-          console.log('⏸️ [Prerecorded] Pause between officer and driver...')
-          await new Promise(resolve => setTimeout(resolve, 800))
-          
-          if (!isPlayingRef.current) break
-          
-          // Play driver part
-          setPlayingType('driver')
-          console.log(`🚛 [Audio] Playing driver for question ${questionId}`)
-          
-          try {
-            if (prerecordedService) {
-              // Try prerecorded audio first
-              console.log(`🎵 [Audio] Trying prerecorded driver audio for question ${questionId}`)
-              await prerecordedService.playAudio(questionId, 'driver')
-              console.log(`✅ [Audio] Prerecorded driver audio completed for question ${questionId}`)
-            } else {
-              throw new Error('No prerecorded service, using TTS fallback')
-            }
-          } catch (audioError) {
-            console.warn(`⚠️ [Audio] Prerecorded driver audio failed for question ${questionId}, using TTS fallback:`, audioError)
-            
-            // Fallback to ElevenLabs TTS
-            if (elevenLabsService) {
-              console.log(`🎵 [Audio] Using TTS fallback for driver question ${questionId}`)
-              const audioText = prompt.originalDriver || prompt.driver
-              await elevenLabsService.playText(audioText)
-              console.log(`✅ [Audio] TTS driver audio completed for question ${questionId}`)
-            } else {
-              console.error(`❌ [Audio] No TTS service available for driver question ${questionId}`)
-            }
-          }
-          
-          setPlayingType(null)
-          
-          // Pause between conversations
-          if (i < availablePrompts.length - 1 && isPlayingRef.current) {
-            console.log(`⏸️ [Prerecorded] Moving to next conversation...`)
-            await new Promise(resolve => setTimeout(resolve, 1200))
-          }
-          
-          console.log(`✅ [Prerecorded] Completed conversation ${i + 1}`)
-        } catch (conversationError) {
-          console.error(`❌ [Prerecorded] Error in conversation ${i + 1}:`, conversationError)
-          setPlayingType(null)
-          
-          // Continue to next conversation on error
-          if (i < availablePrompts.length - 1 && isPlayingRef.current) {
-            console.log(`⏭️ [Prerecorded] Skipping to next conversation after error...`)
-            await new Promise(resolve => setTimeout(resolve, 1000))
-          }
-          
-          // Don't break the loop, just continue to next conversation
-          continue
+          // Use original English text for audio, even if displaying translated
+          const audioText = prompt.originalOfficer || prompt.officer
+          console.log(`🎵 Attempting to play officer audio: "${audioText.substring(0, 30)}..."`)
+          await elevenLabsService.playText(audioText)
+          console.log(`✅ Officer audio completed successfully`)
+        } catch (error) {
+          console.error('❌ Officer audio failed:', error)
+          // On mobile, continue to next part instead of skipping entire conversation
+          console.log('⏭️ Continuing to driver part despite officer audio failure')
+        }
+        
+        // Check again after officer speech
+        if (!isPlayingRef.current) break
+        
+        // Short pause between officer and driver
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // Play driver part (always in English for best audio quality)
+        setPlayingType('driver')
+        console.log(`🚛 Driver: ${prompt.driver}`)
+        try {
+          // Use original English text for audio, even if displaying translated
+          const audioText = prompt.originalDriver || prompt.driver
+          console.log(`🎵 Attempting to play driver audio: "${audioText.substring(0, 30)}..."`)
+          await elevenLabsService.playText(audioText)
+          console.log(`✅ Driver audio completed successfully`)
+        } catch (error) {
+          console.error('❌ Driver audio failed:', error)
+          // On mobile, continue to next conversation instead of stopping
+          console.log('⏭️ Moving to next conversation despite driver audio failure')
+        }
+        
+        setPlayingType(null)
+        
+        // Short pause between conversations (next question)
+        if (i < availablePrompts.length - 1) {
+          console.log(`⏸️ Moving to next question...`)
+          await new Promise(resolve => setTimeout(resolve, 1500))
         }
       }
       
-      console.log('✅ [Prerecorded] Finished playing all conversations')
+      console.log('✅ Finished playing all conversations')
     } catch (error) {
-      console.error('❌ [Prerecorded] Play all error:', error)
+      console.error('❌ Play all error:', error)
     } finally {
       setIsPlaying(false)
       isPlayingRef.current = false
       setAudioLoading(false)
       setPlayingType(null)
-      console.log('🏁 [Prerecorded] Play all completed')
+      console.log('🏁 Play all completed')
     }
   }
 
@@ -436,7 +333,7 @@ const QATraining = () => {
       <div className="text-center mb-8">
         <button
           onClick={isPlaying ? stopAll : playAll}
-          disabled={audioLoading || (!prerecordedService && !elevenLabsService)}
+          disabled={audioLoading || !elevenLabsService}
           className={`w-40 h-40 rounded-full text-white font-bold shadow-lg disabled:bg-gray-400 ${
             isPlaying ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
           }`}
@@ -444,26 +341,20 @@ const QATraining = () => {
           {audioLoading ? (
             <>
               <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-              <div className="text-sm">Loading Audio...</div>
+              <div className="text-sm">Loading ElevenLabs...</div>
             </>
           ) : (
             <>
               <div className="text-5xl mb-2">{isPlaying ? '⏹️' : '▶️'}</div>
               <div className="text-lg">{isPlaying ? 'STOP' : 'PLAY ALL'}</div>
               <div className="text-xs mt-1 opacity-75">
-                {isPlaying ? 'Playing...' : prerecordedService ? 'Prerecorded + TTS' : 'TTS Ready'}
+                {isPlaying ? 'Playing...' : 'Mobile Ready'}
               </div>
             </>
           )}
         </button>
-        {!prerecordedService && !elevenLabsService && (
-          <p className="text-red-500 text-sm mt-2">⚠️ No audio service available</p>
-        )}
-        {prerecordedService && (
-          <p className="text-green-500 text-sm mt-2">✅ Prerecorded audio ready</p>
-        )}
-        {!prerecordedService && elevenLabsService && (
-          <p className="text-yellow-500 text-sm mt-2">⚠️ Using TTS fallback only</p>
+        {!elevenLabsService && (
+          <p className="text-red-500 text-sm mt-2">⚠️ ElevenLabs not initialized</p>
         )}
       </div>
 
