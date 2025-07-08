@@ -3,9 +3,44 @@
 
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../client/.env') });
 
-// Import the sample prompts (you'll need to adjust the path)
-const { samplePrompts } = require('../client/src/data/sample-prompts.ts');
+// Use Node.js built-in fetch (available in Node 18+)
+const fetch = globalThis.fetch;
+
+// Sample prompts data (first few for testing)
+const samplePrompts = [
+  {
+    officer: "What are you hauling?",
+    driver: "I'm hauling refrigerated meat products for a grocery chain.",
+    id: 1,
+    isFree: true
+  },
+  {
+    officer: "How far are you from your delivery location?",
+    driver: "I'm about 120 miles away from my drop-off point.",
+    id: 2,
+    isFree: true
+  },
+  {
+    officer: "Are your load straps secure?",
+    driver: "Yes, I double-checked all straps before leaving the warehouse.",
+    id: 3,
+    isFree: true
+  },
+  {
+    officer: "When did you last take a break?",
+    driver: "About 30 minutes ago, I stopped at a rest area for lunch.",
+    id: 4,
+    isFree: true
+  },
+  {
+    officer: "Are you hauling perishable goods?",
+    driver: "Yes, I'm transporting frozen vegetables in a reefer trailer.",
+    id: 5,
+    isFree: true
+  }
+];
 
 class AudioGenerator {
   constructor(apiKey, voiceId) {
@@ -112,8 +147,13 @@ async function main() {
   const apiKey = process.env.VITE_ELEVENLABS_API_KEY;
   const voiceId = process.env.VITE_ELEVENLABS_VOICE_ID;
 
+  console.log('🔧 Environment Check:');
+  console.log('  API Key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'MISSING');
+  console.log('  Voice ID:', voiceId || 'MISSING');
+
   if (!apiKey || !voiceId) {
     console.error('❌ Please set VITE_ELEVENLABS_API_KEY and VITE_ELEVENLABS_VOICE_ID environment variables');
+    console.error('💡 Make sure your client/.env file has these values');
     process.exit(1);
   }
 
