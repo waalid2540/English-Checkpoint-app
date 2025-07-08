@@ -163,60 +163,61 @@ const QATraining = () => {
     console.log('🚀 Starting playAll with mobile optimizations')
     
     try {
-      // Play each conversation sequentially with ElevenLabs
-      for (let i = 0; i < availablePrompts.length; i++) {
-        // Check if user stopped playback
-        if (!isPlayingRef.current) {
-          console.log('🛑 User stopped playback')
-          break
-        }
+      // Play each conversation sequentially with mobile fixes
+      for (let i = 0; i < availablePrompts.length && isPlayingRef.current; i++) {
+        console.log(`🚀 [Mobile Fix] Starting conversation ${i + 1}/${availablePrompts.length}`)
         
         const prompt = availablePrompts[i]
         setCurrentIndex(i)
-        console.log(`🎵 Playing conversation ${i + 1}/${availablePrompts.length}`)
         
-        // Play officer part (always in English for best audio quality)
-        setPlayingType('officer')
-        console.log(`👮‍♂️ Officer: ${prompt.officer}`)
         try {
-          // Use original English text for audio, even if displaying translated
-          const audioText = prompt.originalOfficer || prompt.officer
-          console.log(`🎵 Attempting to play officer audio: "${audioText.substring(0, 30)}..."`)
-          await elevenLabsService.playText(audioText)
-          console.log(`✅ Officer audio completed successfully`)
-        } catch (error) {
-          console.error('❌ Officer audio failed:', error)
-          // On mobile, continue to next part instead of skipping entire conversation
-          console.log('⏭️ Continuing to driver part despite officer audio failure')
-        }
-        
-        // Check again after officer speech
-        if (!isPlayingRef.current) break
-        
-        // Short pause between officer and driver
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        // Play driver part (always in English for best audio quality)
-        setPlayingType('driver')
-        console.log(`🚛 Driver: ${prompt.driver}`)
-        try {
-          // Use original English text for audio, even if displaying translated
-          const audioText = prompt.originalDriver || prompt.driver
-          console.log(`🎵 Attempting to play driver audio: "${audioText.substring(0, 30)}..."`)
-          await elevenLabsService.playText(audioText)
-          console.log(`✅ Driver audio completed successfully`)
-        } catch (error) {
-          console.error('❌ Driver audio failed:', error)
-          // On mobile, continue to next conversation instead of stopping
-          console.log('⏭️ Moving to next conversation despite driver audio failure')
-        }
-        
-        setPlayingType(null)
-        
-        // Short pause between conversations (next question)
-        if (i < availablePrompts.length - 1) {
-          console.log(`⏸️ Moving to next question...`)
-          await new Promise(resolve => setTimeout(resolve, 1500))
+          // Play officer part
+          setPlayingType('officer')
+          console.log(`👮‍♂️ [Mobile Fix] Playing officer: "${prompt.officer.substring(0, 40)}..."`)
+          
+          const audioText1 = prompt.originalOfficer || prompt.officer
+          await elevenLabsService.playText(audioText1)
+          
+          // Quick check if still playing
+          if (!isPlayingRef.current) {
+            console.log('🛑 [Mobile Fix] User stopped during officer speech')
+            break
+          }
+          
+          // Short pause
+          console.log('⏸️ [Mobile Fix] Pause between officer and driver...')
+          await new Promise(resolve => setTimeout(resolve, 800))
+          
+          if (!isPlayingRef.current) break
+          
+          // Play driver part
+          setPlayingType('driver')
+          console.log(`🚛 [Mobile Fix] Playing driver: "${prompt.driver.substring(0, 40)}..."`)
+          
+          const audioText2 = prompt.originalDriver || prompt.driver
+          await elevenLabsService.playText(audioText2)
+          
+          setPlayingType(null)
+          
+          // Pause between conversations
+          if (i < availablePrompts.length - 1 && isPlayingRef.current) {
+            console.log(`⏸️ [Mobile Fix] Moving to next conversation...`)
+            await new Promise(resolve => setTimeout(resolve, 1200))
+          }
+          
+          console.log(`✅ [Mobile Fix] Completed conversation ${i + 1}`)
+        } catch (conversationError) {
+          console.error(`❌ [Mobile Fix] Error in conversation ${i + 1}:`, conversationError)
+          setPlayingType(null)
+          
+          // Continue to next conversation on error
+          if (i < availablePrompts.length - 1 && isPlayingRef.current) {
+            console.log(`⏭️ [Mobile Fix] Skipping to next conversation after error...`)
+            await new Promise(resolve => setTimeout(resolve, 1000))
+          }
+          
+          // Don't break the loop, just continue to next conversation
+          continue
         }
       }
       
