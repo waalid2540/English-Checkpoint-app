@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import InstallButton from '../components/InstallButton'
 
 const LandingPage = () => {
   const { user } = useAuth()
@@ -125,6 +126,11 @@ const LandingPage = () => {
               >
                 🎵 Try Demo
               </Link>
+            </div>
+            
+            {/* Install App Button */}
+            <div className="mb-8">
+              <InstallButton />
             </div>
             
             {/* Trust Indicators */}

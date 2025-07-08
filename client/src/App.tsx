@@ -18,6 +18,7 @@ import PaymentSuccess from './pages/PaymentSuccess'
 import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
 import RouteGuard from './components/RouteGuard'
+import PWAInstall from './components/PWAInstall'
 
 function App() {
   return (
@@ -103,6 +104,9 @@ function App() {
           {/* Catch-all route for 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        
+        {/* PWA Install Prompt */}
+        <PWAInstall />
       </Router>
     </AuthProvider>
   )
