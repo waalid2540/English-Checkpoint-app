@@ -95,12 +95,48 @@ const Signup = () => {
             )}
 
             {message && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-                {message}
-                <div className="mt-2">
-                  <Link to="/login" className="text-green-600 hover:text-green-800 underline">
-                    Go to Sign In
-                  </Link>
+              <div className="bg-gradient-to-r from-green-400 to-blue-500 text-white p-6 rounded-xl shadow-lg border-2 border-white">
+                <div className="text-center">
+                  <div className="text-4xl mb-4">📧</div>
+                  <h3 className="text-xl font-bold mb-3">Account Created Successfully!</h3>
+                  <div className="bg-white/20 rounded-lg p-4 mb-4">
+                    <p className="text-lg font-semibold mb-2">
+                      🚨 IMPORTANT: Check Your Email Now!
+                    </p>
+                    <p className="text-sm">
+                      We sent a confirmation email to <strong>{email}</strong>
+                    </p>
+                    <p className="text-sm mt-2">
+                      Click the link in your email to activate your account
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="bg-yellow-400 text-black px-4 py-2 rounded-lg font-bold">
+                      ⚠️ Can't sign in until you confirm your email!
+                    </div>
+                    
+                    <div className="text-sm space-y-1">
+                      <p>• Check your inbox (and spam folder)</p>
+                      <p>• Look for email from "English Checkpoint"</p>
+                      <p>• Click the confirmation link</p>
+                    </div>
+                    
+                    <div className="flex gap-3 justify-center mt-4">
+                      <Link 
+                        to="/resend-confirmation" 
+                        className="bg-white text-green-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-all"
+                      >
+                        📧 Resend Email
+                      </Link>
+                      <Link 
+                        to="/login" 
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-all"
+                      >
+                        Already Confirmed? Sign In
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

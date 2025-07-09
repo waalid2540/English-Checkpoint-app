@@ -47,8 +47,8 @@ const Login = () => {
         if (error.message.includes('Invalid login credentials')) {
           setError('Invalid email or password')
         } else if (error.message.includes('Email not confirmed')) {
-          setError('Please check your email and confirm your account before signing in')
-          setMessage('Need confirmation email? ')
+          setError('')
+          setMessage('EMAIL_NOT_CONFIRMED') // Special flag for prominent display
         } else {
           setError(error.message)
         }
@@ -92,9 +92,56 @@ const Login = () => {
               </div>
             )}
 
-            {message && !error && (
+            {message && !error && message !== 'EMAIL_NOT_CONFIRMED' && (
               <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
                 {message}
+              </div>
+            )}
+
+            {message === 'EMAIL_NOT_CONFIRMED' && (
+              <div className="bg-gradient-to-r from-orange-400 to-red-500 text-white p-6 rounded-xl shadow-lg border-2 border-white">
+                <div className="text-center">
+                  <div className="text-4xl mb-4">⚠️</div>
+                  <h3 className="text-xl font-bold mb-3">Email Not Confirmed!</h3>
+                  <div className="bg-white/20 rounded-lg p-4 mb-4">
+                    <p className="text-lg font-semibold mb-2">
+                      🚨 You must confirm your email first!
+                    </p>
+                    <p className="text-sm mb-2">
+                      Check your email inbox for <strong>{email}</strong>
+                    </p>
+                    <p className="text-sm">
+                      Click the confirmation link to activate your account
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="bg-yellow-400 text-black px-4 py-2 rounded-lg font-bold">
+                      📧 Check your email (including spam folder)
+                    </div>
+                    
+                    <div className="text-sm space-y-1">
+                      <p>• Look for email from "English Checkpoint"</p>
+                      <p>• Click the "Confirm your mail" link</p>
+                      <p>• Then come back here to sign in</p>
+                    </div>
+                    
+                    <div className="flex gap-3 justify-center mt-4">
+                      <Link 
+                        to="/resend-confirmation" 
+                        className="bg-white text-orange-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-all"
+                      >
+                        📧 Resend Email
+                      </Link>
+                      <button
+                        onClick={() => setMessage('')}
+                        className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-all"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
