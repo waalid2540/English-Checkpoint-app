@@ -97,7 +97,7 @@ const InstallPrompt: React.FC = () => {
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-gray-900 text-sm">
-            Install English Checkpoint
+            Install Checkpoint English
           </h3>
           <p className="text-gray-600 text-xs mt-1">
             {isIOS 

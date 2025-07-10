@@ -33,7 +33,7 @@ const LandingPage = () => {
                 <span className="text-black font-bold text-xl">🚛</span>
               </div>
               <div>
-                <h1 className="font-bold text-xl text-white">English Checkpoint</h1>
+                <h1 className="font-bold text-xl text-white">Checkpoint English</h1>
                 <p className="text-xs text-blue-200">Truck Driver Edition</p>
               </div>
             </div>
@@ -157,7 +157,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Why Choose <span className="text-yellow-400">English Checkpoint</span>?
+              Why Choose <span className="text-yellow-400">Checkpoint English</span>?
             </h2>
             <p className="text-xl text-blue-200 max-w-3xl mx-auto">
               Built specifically for immigrant truck drivers who need to pass DOT inspections and communicate professionally on the road.
@@ -254,7 +254,7 @@ const LandingPage = () => {
             <div>
               <h2 className="text-4xl font-bold mb-6">
                 <span className="text-green-300">The Solution:</span><br />
-                English Checkpoint
+                Checkpoint English
               </h2>
               <div className="space-y-4 text-lg text-green-200">
                 <div className="flex items-start gap-3">
@@ -507,7 +507,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-xl font-bold mb-4">🚛 English Checkpoint</h3>
+              <h3 className="text-xl font-bold mb-4">🚛 Checkpoint English</h3>
               <p className="text-gray-400">
                 Professional English training for truck drivers worldwide.
               </p>
@@ -544,7 +544,7 @@ const LandingPage = () => {
           </div>
           
           <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 English Checkpoint. All rights reserved.</p>
+            <p>&copy; 2025 Checkpoint English. All rights reserved.</p>
           </div>
         </div>
       </footer>

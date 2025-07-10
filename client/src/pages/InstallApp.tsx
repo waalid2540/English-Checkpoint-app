@@ -71,7 +71,7 @@ const InstallApp: React.FC = () => {
           <div className="text-8xl mb-6">✅</div>
           <h1 className="text-4xl font-bold text-green-800 mb-4">App Already Installed!</h1>
           <p className="text-lg text-green-600 mb-8">
-            You're running English Checkpoint as an installed app. Perfect!
+            You're running Checkpoint English as an installed app. Perfect!
           </p>
           <Link
             to="/qa-training"
@@ -90,7 +90,7 @@ const InstallApp: React.FC = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <div className="text-6xl mb-6">📱</div>
-          <h1 className="text-4xl font-bold text-gray-800 mb-4">Install English Checkpoint</h1>
+          <h1 className="text-4xl font-bold text-gray-800 mb-4">Install Checkpoint English</h1>
           <p className="text-xl text-gray-600">
             Get the best experience by installing our app on your device
           </p>

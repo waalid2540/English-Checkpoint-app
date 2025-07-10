@@ -81,7 +81,7 @@ const PWAInstall: React.FC = () => {
         <div className="flex items-start space-x-3">
           <div className="text-2xl">📱</div>
           <div className="flex-1">
-            <h3 className="font-bold text-sm mb-1">Install English Checkpoint</h3>
+            <h3 className="font-bold text-sm mb-1">Install Checkpoint English</h3>
             <p className="text-xs opacity-90 mb-2">
               Add to your home screen for the best experience!
             </p>
@@ -108,7 +108,7 @@ const PWAInstall: React.FC = () => {
           <div className="flex items-center space-x-3">
             <div className="text-2xl">📱</div>
             <div>
-              <h3 className="font-bold text-sm">Install English Checkpoint</h3>
+              <h3 className="font-bold text-sm">Install Checkpoint English</h3>
               <p className="text-xs opacity-90">
                 Add to your device for offline access!
               </p>

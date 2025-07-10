@@ -118,7 +118,7 @@ const Signup = () => {
                     
                     <div className="text-sm space-y-1">
                       <p>• Check your inbox (and spam folder)</p>
-                      <p>• Look for email from "English Checkpoint"</p>
+                      <p>• Look for email from "Checkpoint English"</p>
                       <p>• Click the confirmation link</p>
                     </div>
                     
@@ -251,7 +251,7 @@ const Signup = () => {
 
         {/* Footer */}
         <div className="text-center mt-8 text-gray-500 text-sm">
-          <p>🚛 English Checkpoint - Empowering Truck Drivers</p>
+          <p>🚛 Checkpoint English - Empowering Truck Drivers</p>
         </div>
       </div>
     </div>

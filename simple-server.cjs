@@ -27,13 +27,13 @@ async function sendActivationEmail(userEmail, userId) {
   const activationUrl = `https://english-checkpoint-frontend.onrender.com/?activate=${userId}&token=${Buffer.from(userId).toString('base64')}`;
   
   const mailOptions = {
-    from: process.env.EMAIL_USER || 'English Checkpoint <noreply@englishcheckpoint.com>',
+    from: process.env.EMAIL_USER || 'Checkpoint English <noreply@checkpointenglish.com>',
     to: userEmail,
     subject: '🎉 Welcome to Premium! Activate Your Access',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; border-radius: 10px;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="font-size: 32px; margin: 0;">🚛 English Checkpoint</h1>
+          <h1 style="font-size: 32px; margin: 0;">🚛 Checkpoint English</h1>
           <h2 style="font-size: 24px; margin: 10px 0; color: #FFD700;">Payment Successful!</h2>
         </div>
         
@@ -71,7 +71,7 @@ async function sendActivationEmail(userEmail, userId) {
             Need help? Reply to this email or visit our support page.
           </p>
           <p style="font-size: 12px; color: #999;">
-            English Checkpoint - Professional English for Truck Drivers
+            Checkpoint English - Professional English for Truck Drivers
           </p>
         </div>
       </div>

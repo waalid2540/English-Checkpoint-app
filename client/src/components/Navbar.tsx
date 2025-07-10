@@ -40,7 +40,7 @@ const Navbar = () => {
               <span className="text-white font-bold text-xl">🚛</span>
             </div>
             <div>
-              <h1 className="font-bold text-xl gradient-text">English Checkpoint</h1>
+              <h1 className="font-bold text-xl gradient-text">Checkpoint English</h1>
               <p className="text-xs text-gray-500">Truck Driver Edition</p>
             </div>
           </Link>

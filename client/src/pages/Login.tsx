@@ -72,7 +72,7 @@ const Login = () => {
             <span className="text-white text-3xl font-bold">🚛</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="text-gray-600 mt-2">Sign in to your English Checkpoint account</p>
+          <p className="text-gray-600 mt-2">Sign in to your Checkpoint English account</p>
         </div>
 
         {/* Login Form */}
@@ -121,7 +121,7 @@ const Login = () => {
                     </div>
                     
                     <div className="text-sm space-y-1">
-                      <p>• Look for email from "English Checkpoint"</p>
+                      <p>• Look for email from "Checkpoint English"</p>
                       <p>• Click the "Confirm your mail" link</p>
                       <p>• Then come back here to sign in</p>
                     </div>
@@ -214,7 +214,7 @@ const Login = () => {
 
         {/* Footer */}
         <div className="text-center mt-8 text-gray-500 text-sm">
-          <p>🚛 English Checkpoint - Empowering Truck Drivers</p>
+          <p>🚛 Checkpoint English - Empowering Truck Drivers</p>
         </div>
       </div>
     </div>

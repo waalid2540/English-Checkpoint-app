@@ -120,7 +120,7 @@ const ForgotPassword = () => {
 
         {/* Footer */}
         <div className="text-center mt-8 text-gray-500 text-sm">
-          <p>🚛 English Checkpoint - Empowering Truck Drivers</p>
+          <p>🚛 Checkpoint English - Empowering Truck Drivers</p>
         </div>
       </div>
     </div>
