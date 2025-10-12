@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import dotPracticeRoutes from './routes/dot-practice.js';
 import aiChatRoutes from './routes/ai-chat.js';
 import ttsRoutes from './routes/tts.js';
+import subscriptionRoutes from './routes/subscription.js';
+import stripeRoutes from './routes/stripe.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,6 +16,9 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3003;
+
+// Webhook needs raw body, so register it before other middleware
+app.use('/webhook/stripe', express.raw({ type: 'application/json' }), stripeRoutes);
 
 // Middleware
 app.use(cors());
@@ -40,6 +45,12 @@ app.use('/api/ai', aiChatRoutes);
 
 // Google TTS routes (100% FREE!)
 app.use('/api/tts', ttsRoutes);
+
+// Subscription routes
+app.use('/api/subscription', subscriptionRoutes);
+
+// Stripe routes
+app.use('/api/stripe', stripeRoutes);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
