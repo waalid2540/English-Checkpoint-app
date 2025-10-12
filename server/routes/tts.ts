@@ -1,5 +1,5 @@
 import express from 'express';
-import gtts from 'gtts';
+import gTTS from 'gtts';
 import { Readable } from 'stream';
 
 const router = express.Router();
@@ -16,7 +16,7 @@ router.post('/generate', async (req, res) => {
     console.log(`🎵 Generating Google TTS for: "${text.substring(0, 50)}..." (lang: ${lang}, slow: ${slow})`);
 
     // Create Google TTS instance
-    const speech = new gtts(text, lang, slow);
+    const speech = new gTTS(text, lang, slow);
 
     // Get audio buffer
     speech.stream().pipe(res.set({
