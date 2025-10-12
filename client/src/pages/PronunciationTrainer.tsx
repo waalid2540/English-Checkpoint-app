@@ -3,7 +3,7 @@ import { samplePrompts } from '../data/sample-prompts'
 import { useSubscription } from '../hooks/useSubscription'
 import { useAuth } from '../contexts/AuthContext'
 import UpgradePopup from '../components/UpgradePopup'
-import { createElevenLabsService } from '../services/elevenlabs'
+import { createGoogleTTSService } from '../services/google-tts'
 
 interface PhraseCategory {
   id: string
@@ -27,7 +27,7 @@ const PronunciationTrainer = () => {
   const [showUpgradePopup, setShowUpgradePopup] = useState(false)
   const [practiceScore, setPracticeScore] = useState(0)
   const [practiceStreak, setPracticeStreak] = useState(0)
-  const [elevenLabsService, setElevenLabsService] = useState<any>(null)
+  const [googleTTSService, setGoogle TTSService] = useState<any>(null)
   const [audioLoading, setAudioLoading] = useState(false)
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -138,18 +138,18 @@ const PronunciationTrainer = () => {
     }
   ]
 
-  // Initialize ElevenLabs service
+  // Initialize Google TTS service
   useEffect(() => {
     console.log('🔧 Pronunciation Trainer - Environment Variables Check:')
     console.log('  VITE_ELEVENLABS_API_KEY:', import.meta.env.VITE_ELEVENLABS_API_KEY ? 'EXISTS' : 'MISSING')
     console.log('  VITE_ELEVENLABS_VOICE_ID:', import.meta.env.VITE_ELEVENLABS_VOICE_ID ? 'EXISTS' : 'MISSING')
     
     try {
-      const service = createElevenLabsService()
-      setElevenLabsService(service)
-      console.log('✅ ElevenLabs service initialized for Pronunciation Trainer')
+      const service = createGoogleTTSService()
+      setGoogle TTSService(service)
+      console.log('✅ Google TTS service initialized for Pronunciation Trainer')
     } catch (error) {
-      console.error('❌ Failed to initialize ElevenLabs for Pronunciation Trainer:', error)
+      console.error('❌ Failed to initialize Google TTS for Pronunciation Trainer:', error)
     }
   }, [])
 
@@ -208,8 +208,8 @@ const PronunciationTrainer = () => {
       return
     }
     
-    if (!elevenLabsService) {
-      console.error('ElevenLabs service not initialized')
+    if (!googleTTSService) {
+      console.error('Google TTS service not initialized')
       return
     }
     
@@ -218,10 +218,10 @@ const PronunciationTrainer = () => {
     setAudioLoading(true)
     
     try {
-      console.log(`🎵 Playing with ElevenLabs: ${currentPhrase}`)
-      await elevenLabsService.playText(currentPhrase)
+      console.log(`🎵 Playing with Google TTS: ${currentPhrase}`)
+      await googleTTSService.playText(currentPhrase)
     } catch (error) {
-      console.error('❌ ElevenLabs playback error:', error)
+      console.error('❌ Google TTS playback error:', error)
     } finally {
       setIsPlaying(false)
       setPlayingType(null)

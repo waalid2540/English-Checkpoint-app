@@ -4,7 +4,7 @@ import { samplePrompts } from '../data/sample-prompts'
 import { useSubscription } from '../hooks/useSubscription'
 import { useAuth } from '../contexts/AuthContext'
 import UpgradePopup from '../components/UpgradePopup'
-import { createElevenLabsService } from '../services/elevenlabs'
+import { createGoogleTTSService } from '../services/google-tts'
 import { translationService, SUPPORTED_LANGUAGES } from '../services/translation'
 
 const QATraining = () => {
@@ -59,7 +59,7 @@ const QATraining = () => {
   const [isPlaying, setIsPlaying] = useState(false)
   const [playingType, setPlayingType] = useState<'officer' | 'driver' | null>(null)
   const [showUpgradePopup, setShowUpgradePopup] = useState(false)
-  const [elevenLabsService, setElevenLabsService] = useState<any>(null)
+  const [googleTTSService, setGoogleTTSService] = useState<any>(null)
   const [audioLoading, setAudioLoading] = useState(false)
   const isPlayingRef = useRef(false)
   const [selectedLanguage, setSelectedLanguage] = useState('en')
@@ -67,19 +67,16 @@ const QATraining = () => {
   const [translating, setTranslating] = useState(false)
   const [showAllLanguages, setShowAllLanguages] = useState(false)
 
-  // Initialize ElevenLabs service
+  // Initialize Google TTS service
   useEffect(() => {
-    console.log('🔧 Environment Variables Check:')
-    console.log('  All env vars:', Object.keys(import.meta.env))
-    console.log('  VITE_ELEVENLABS_API_KEY:', import.meta.env.VITE_ELEVENLABS_API_KEY ? 'EXISTS' : 'MISSING')
-    console.log('  VITE_ELEVENLABS_VOICE_ID:', import.meta.env.VITE_ELEVENLABS_VOICE_ID ? 'EXISTS' : 'MISSING')
-    
+    console.log('🔧 Initializing Google TTS Service')
+
     try {
-      const service = createElevenLabsService()
-      setElevenLabsService(service)
-      console.log('✅ ElevenLabs service initialized')
+      const service = createGoogleTTSService()
+      setGoogleTTSService(service)
+      console.log('✅ Google TTS service initialized (100% FREE!)')
     } catch (error) {
-      console.error('❌ Failed to initialize ElevenLabs:', error)
+      console.error('❌ Failed to initialize Google TTS:', error)
     }
   }, [])
 
@@ -147,8 +144,8 @@ const QATraining = () => {
   }
 
   const playAll = async () => {
-    if (!elevenLabsService) {
-      console.error('ElevenLabs service not initialized')
+    if (!googleTTSService) {
+      console.error('Google TTS service not initialized')
       return
     }
 
@@ -182,7 +179,7 @@ const QATraining = () => {
           // Use original English text for audio, even if displaying translated
           const audioText = prompt.originalOfficer || prompt.officer
           console.log(`🎵 Attempting to play officer audio: "${audioText.substring(0, 30)}..."`)
-          await elevenLabsService.playText(audioText)
+          await googleTTSService.playText(audioText)
           console.log(`✅ Officer audio completed successfully`)
         } catch (error) {
           console.error('❌ Officer audio failed:', error)
@@ -203,7 +200,7 @@ const QATraining = () => {
           // Use original English text for audio, even if displaying translated
           const audioText = prompt.originalDriver || prompt.driver
           console.log(`🎵 Attempting to play driver audio: "${audioText.substring(0, 30)}..."`)
-          await elevenLabsService.playText(audioText)
+          await googleTTSService.playText(audioText)
           console.log(`✅ Driver audio completed successfully`)
         } catch (error) {
           console.error('❌ Driver audio failed:', error)
@@ -233,7 +230,7 @@ const QATraining = () => {
   }
 
   const playCurrentPrompt = async () => {
-    if (!elevenLabsService) return
+    if (!googleTTSService) return
     
     setAudioLoading(true)
     try {
@@ -242,7 +239,7 @@ const QATraining = () => {
       // Play officer part (use original English for audio)
       setPlayingType('officer')
       const officerText = prompt.originalOfficer || prompt.officer
-      await elevenLabsService.playText(officerText)
+      await googleTTSService.playText(officerText)
       
       // Brief pause
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -250,7 +247,7 @@ const QATraining = () => {
       // Play driver part (use original English for audio)
       setPlayingType('driver')
       const driverText = prompt.originalDriver || prompt.driver
-      await elevenLabsService.playText(driverText)
+      await googleTTSService.playText(driverText)
       
     } catch (error) {
       console.error('❌ Single prompt playback error:', error)
@@ -333,7 +330,7 @@ const QATraining = () => {
       <div className="text-center mb-8">
         <button
           onClick={isPlaying ? stopAll : playAll}
-          disabled={audioLoading || !elevenLabsService}
+          disabled={audioLoading || !googleTTSService}
           className={`w-40 h-40 rounded-full text-white font-bold shadow-lg disabled:bg-gray-400 ${
             isPlaying ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
           }`}
@@ -341,7 +338,7 @@ const QATraining = () => {
           {audioLoading ? (
             <>
               <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-              <div className="text-sm">Loading ElevenLabs...</div>
+              <div className="text-sm">Loading Audio...</div>
             </>
           ) : (
             <>
@@ -353,8 +350,8 @@ const QATraining = () => {
             </>
           )}
         </button>
-        {!elevenLabsService && (
-          <p className="text-red-500 text-sm mt-2">⚠️ ElevenLabs not initialized</p>
+        {!googleTTSService && (
+          <p className="text-red-500 text-sm mt-2">⚠️ Google TTS not initialized</p>
         )}
       </div>
 
@@ -488,7 +485,7 @@ const QATraining = () => {
           <div className="mt-2">
             <button
               onClick={playCurrentPrompt}
-              disabled={audioLoading || !elevenLabsService}
+              disabled={audioLoading || !googleTTSService}
               className="bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg font-medium text-sm"
             >
               {audioLoading ? (
