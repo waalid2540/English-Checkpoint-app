@@ -18,15 +18,33 @@ router.post('/generate', async (req, res) => {
     // Create Google TTS instance
     const speech = new gTTS(text, lang, slow);
 
-    // Get audio buffer
-    speech.stream().pipe(res.set({
+    // Set response headers
+    res.set({
       'Content-Type': 'audio/mpeg',
-    }));
+      'Transfer-Encoding': 'chunked'
+    });
 
-    console.log(`✅ Google TTS audio generated successfully`);
+    // Get audio stream and pipe to response
+    const stream = speech.stream();
+
+    stream.on('error', (error) => {
+      console.error('❌ Google TTS stream error:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Text-to-speech generation failed' });
+      }
+    });
+
+    stream.pipe(res);
+
+    stream.on('end', () => {
+      console.log(`✅ Google TTS audio streamed successfully`);
+    });
+
   } catch (error) {
     console.error('❌ Google TTS error:', error);
-    res.status(500).json({ error: 'Text-to-speech generation failed' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Text-to-speech generation failed' });
+    }
   }
 });
 
