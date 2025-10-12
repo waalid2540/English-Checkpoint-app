@@ -8,6 +8,7 @@
     "server:dev": "tsx watch server/index.ts",
     "client:dev": "vite",
     "build": "cd client && npm install && vite build",
+    "start": "tsx server/index.ts",
     "preview": "vite preview"
   },
   "dependencies": {
