@@ -27,7 +27,7 @@ const PronunciationTrainer = () => {
   const [showUpgradePopup, setShowUpgradePopup] = useState(false)
   const [practiceScore, setPracticeScore] = useState(0)
   const [practiceStreak, setPracticeStreak] = useState(0)
-  const [googleTTSService, setGoogle TTSService] = useState<any>(null)
+  const [googleTTSService, setGoogleTTSService] = useState<any>(null)
   const [audioLoading, setAudioLoading] = useState(false)
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -146,7 +146,7 @@ const PronunciationTrainer = () => {
     
     try {
       const service = createGoogleTTSService()
-      setGoogle TTSService(service)
+      setGoogleTTSService(service)
       console.log('✅ Google TTS service initialized for Pronunciation Trainer')
     } catch (error) {
       console.error('❌ Failed to initialize Google TTS for Pronunciation Trainer:', error)
