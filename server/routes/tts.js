@@ -1,6 +1,5 @@
 import express from 'express';
 import gTTS from 'gtts';
-import { Readable } from 'stream';
 
 const router = express.Router();
 
