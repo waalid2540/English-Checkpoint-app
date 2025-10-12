@@ -13,7 +13,7 @@ class GoogleTTSService {
   constructor() {
     // Use your backend API endpoint
     this.config = {
-      apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:3003'
+      apiUrl: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3003'
     }
   }
 
