@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotPracticeRoutes from './routes/dot-practice.js';
 import aiChatRoutes from './routes/ai-chat.js';
+import ttsRoutes from './routes/tts.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,6 +37,9 @@ app.use('/api/dot-practice', dotPracticeRoutes);
 
 // AI Chat routes
 app.use('/api/ai', aiChatRoutes);
+
+// Text-to-Speech routes
+app.use('/api/tts', ttsRoutes);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
