@@ -8,6 +8,7 @@ import aiChatRoutes from './routes/ai-chat.js';
 import ttsRoutes from './routes/tts.js';
 import subscriptionRoutes from './routes/subscription.js';
 import stripeRoutes from './routes/stripe.js';
+import translateRoutes from './routes/translate.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +52,9 @@ app.use('/api/subscription', subscriptionRoutes);
 
 // Stripe routes
 app.use('/api/stripe', stripeRoutes);
+
+// Translation routes
+app.use('/api/translate', translateRoutes);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
