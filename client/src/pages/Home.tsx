@@ -314,6 +314,40 @@ const Home = () => {
               </svg>
             </div>
           </Link>
+
+          {/* NEW: Conversation Practice with Avatar */}
+          <Link 
+            to="/conversation-practice"
+            className="card-feature group cursor-pointer relative overflow-hidden"
+          >
+            <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
+              🔥 NEW
+            </div>
+            <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">🎤</div>
+            <h3 className="text-2xl font-bold mb-4 text-gray-800">Conversation Practice</h3>
+            <p className="text-gray-600 mb-6 text-lg">
+              Practice real conversations with an AI avatar! Roleplay scenarios like 
+              weigh stations, dispatch calls, truck stops, and more.
+            </p>
+            
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="bg-orange-50 p-3 rounded-lg">
+                <div className="text-orange-600 font-semibold text-sm">🗣️ Voice Chat</div>
+                <div className="text-xs text-gray-600">Speak naturally</div>
+              </div>
+              <div className="bg-pink-50 p-3 rounded-lg">
+                <div className="text-pink-600 font-semibold text-sm">🎭 6 Scenarios</div>
+                <div className="text-xs text-gray-600">Real trucking situations</div>
+              </div>
+            </div>
+            
+            <div className="flex items-center text-orange-600 font-semibold group-hover:text-orange-700">
+              Start Conversation
+              <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </Link>
         </div>
       </section>
 

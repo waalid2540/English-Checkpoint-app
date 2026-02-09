@@ -7,6 +7,8 @@ import QATraining from './pages/QATraining'
 import PronunciationTrainer from './pages/PronunciationTrainer'
 import SpeedQuiz from './pages/SpeedQuiz'
 import HighwayRules from './pages/HighwayRules'
+import ConversationPractice from './pages/ConversationPractice'
+import AICoachAvatar from './pages/AICoachAvatar'
 import Settings from './pages/Settings'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
@@ -93,6 +95,10 @@ function App() {
               <HighwayRules />
             </div>
           } />
+          
+          <Route path="/conversation-practice" element={<ConversationPractice />} />
+          
+          <Route path="/ai-coach-avatar" element={<AICoachAvatar />} />
           
           <Route path="/settings" element={
             <ProtectedRoute>
