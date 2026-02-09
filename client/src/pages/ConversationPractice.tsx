@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../contexts/AuthContext'
+import TalkingAvatar from '../components/TalkingAvatar'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://english-checkpoint-backend.onrender.com'
 
@@ -341,36 +342,9 @@ const ConversationPractice = () => {
           <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
         </div>
 
-        {/* Avatar */}
+        {/* Animated Talking Avatar */}
         <div className="relative z-10">
-          <div className={`w-48 h-48 lg:w-64 lg:h-64 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center shadow-2xl transition-all duration-300 ${
-            avatarMood === 'speaking' ? 'scale-105 ring-4 ring-green-400' :
-            avatarMood === 'listening' ? 'ring-4 ring-red-400 animate-pulse' :
-            avatarMood === 'thinking' ? 'ring-4 ring-yellow-400' :
-            ''
-          }`}>
-            <span className="text-7xl lg:text-8xl">
-              {avatarMood === 'speaking' ? '🗣️' :
-               avatarMood === 'listening' ? '👂' :
-               avatarMood === 'thinking' ? '🤔' :
-               '😊'}
-            </span>
-          </div>
-
-          {/* Status label */}
-          <div className="text-center mt-6">
-            <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
-              avatarMood === 'speaking' ? 'bg-green-500/80 text-white' :
-              avatarMood === 'listening' ? 'bg-red-500/80 text-white animate-pulse' :
-              avatarMood === 'thinking' ? 'bg-yellow-500/80 text-white' :
-              'bg-white/20 text-white'
-            }`}>
-              {avatarMood === 'speaking' ? '🔊 Speaking...' :
-               avatarMood === 'listening' ? '🎤 Listening...' :
-               avatarMood === 'thinking' ? '💭 Thinking...' :
-               '✅ Ready'}
-            </div>
-          </div>
+          <TalkingAvatar mood={avatarMood} size="lg" />
         </div>
 
         {/* Scenario info */}
