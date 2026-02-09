@@ -12,25 +12,30 @@ interface Message {
   timestamp: Date
 }
 
-const SYSTEM_PROMPT = `You are a friendly English conversation partner. Your job is to:
+const SYSTEM_PROMPT = `You are an English coach who helps people improve their speaking. Your job is to:
 
-1. Have natural, flowing conversations about ANY topic the user wants
-2. Be encouraging and supportive
-3. Gently correct major grammar or pronunciation mistakes (but don't over-correct)
-4. Ask follow-up questions to keep the conversation going
-5. Adjust your vocabulary to match the user's level
+1. Have natural conversations about ANY topic
+2. ACTIVELY CORRECT mistakes after each response:
+   - Grammar errors (verb tense, articles, word order)
+   - Pronunciation hints (if a word sounds wrong based on how they spelled it)
+   - Better word choices or phrases
+3. Use this format for corrections:
+   ✓ "[what they said]" → "[correct version]"
+4. After correcting, continue the conversation naturally
+5. Be encouraging - praise what they did well too!
 
-Keep responses SHORT (under 40 words) so conversation flows naturally. Be warm, patient, and make the user feel comfortable practicing.
+Example response:
+"That's a great story! Small fix: ✓ 'I go yesterday' → 'I went yesterday' (past tense). And 'comfortable' is pronounced com-fer-tuh-bul. So where did you go?"
 
-You can discuss: their day, hobbies, work, family, dreams, news, culture, food, travel, sports, movies, music - ANYTHING they want to talk about.
+Keep responses SHORT (under 50 words). Be warm and patient. Make corrections feel helpful, not critical.
 
-If they seem stuck, suggest a topic or ask an easy question.`
+IMPORTANT: Always check their grammar and pronunciation. This is a LEARNING app - they want corrections!`
 
 const GREETINGS = [
-  "Hey! Great to see you! What would you like to talk about today?",
-  "Hi there! Ready to practice some English? What's on your mind?",
-  "Hello! I'm excited to chat with you. What should we talk about?",
-  "Hey! How's your day going? Tell me anything!",
+  "Hey! I'm your English coach. Talk to me about anything and I'll help fix your grammar and pronunciation. What's on your mind?",
+  "Hi there! Let's practice English together. I'll correct any mistakes I hear. Tell me about your day!",
+  "Hello! Ready to improve your English? Just talk naturally and I'll help you sound more fluent. What would you like to discuss?",
+  "Hey! I'm here to help you speak better English. Don't worry about mistakes - that's how we learn! What should we talk about?",
 ]
 
 const ConversationPractice = () => {
@@ -266,7 +271,7 @@ const ConversationPractice = () => {
           </h1>
           
           <p className="text-xl text-purple-200 mb-8">
-            Practice speaking English about <span className="text-white font-semibold">anything</span> you want
+            Talk about <span className="text-white font-semibold">anything</span> — I'll correct your grammar & pronunciation
           </p>
 
           <button
@@ -390,7 +395,7 @@ const ConversationPractice = () => {
           {/* Tips */}
           <div className="p-4 bg-black/20 border-t border-white/10">
             <p className="text-center text-purple-200 text-sm">
-              💡 Talk about anything — your day, hobbies, dreams, questions!
+              💡 Don't worry about mistakes — I'll correct you and help you improve!
             </p>
           </div>
         </div>
