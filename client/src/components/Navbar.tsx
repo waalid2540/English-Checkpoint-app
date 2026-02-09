@@ -12,84 +12,74 @@ const Navbar = () => {
 
   const handleSignOut = async () => {
     try {
-      console.log('🚪 Signing out...')
       const { error } = await signOut()
-      if (error) {
-        console.error('❌ Sign out error:', error)
-        alert('Error signing out: ' + error.message)
-      } else {
-        console.log('✅ Successfully signed out')
-        // Force redirect to home page
+      if (!error) {
         window.location.href = '/'
       }
     } catch (err) {
-      console.error('❌ Sign out error:', err)
-      alert('Error signing out')
+      console.error('Sign out error:', err)
     } finally {
       setShowUserMenu(false)
     }
   }
 
   return (
-    <nav className="bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200/50 sticky top-0 z-50">
-      <div className="container mx-auto px-4">
+    <nav className="bg-slate-900/95 backdrop-blur-xl border-b border-white/10 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-xl">🚛</span>
+          <Link to="/" className="flex items-center space-x-3 group">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+              <span className="text-xl">🎯</span>
             </div>
-            <div>
-              <h1 className="font-bold text-xl gradient-text">Checkpoint English</h1>
-              <p className="text-xs text-gray-500">Truck Driver Edition</p>
+            <div className="hidden sm:block">
+              <h1 className="font-bold text-lg text-white">Checkpoint English</h1>
             </div>
           </Link>
 
-          {/* Desktop Navigation Links */}
-          <div className="hidden lg:flex items-center space-x-6">
+          {/* Desktop Navigation - Only 3 Features */}
+          <div className="hidden md:flex items-center space-x-1">
             <Link 
-              to="/" 
-              className={`nav-link ${isActive('/') ? 'active' : ''}`}
+              to="/conversation-practice" 
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                isActive('/conversation-practice') 
+                  ? 'bg-orange-500 text-white' 
+                  : 'text-gray-300 hover:text-white hover:bg-white/10'
+              }`}
             >
-              Home
+              <span>🎤</span>
+              <span>Speak</span>
             </Link>
             <Link 
               to="/qa-training" 
-              className={`nav-link ${isActive('/qa-training') ? 'active' : ''}`}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                isActive('/qa-training') 
+                  ? 'bg-blue-500 text-white' 
+                  : 'text-gray-300 hover:text-white hover:bg-white/10'
+              }`}
             >
-              DOT Practice
-            </Link>
-            <Link 
-              to="/pronunciation-trainer" 
-              className={`nav-link ${isActive('/pronunciation-trainer') ? 'active' : ''}`}
-            >
-              🎯 Pronunciation
-            </Link>
-            <Link 
-              to="/speed-quiz" 
-              className={`nav-link ${isActive('/speed-quiz') ? 'active' : ''}`}
-            >
-              ⚡ Speed Quiz
+              <span>🚔</span>
+              <span>DOT</span>
             </Link>
             <Link 
               to="/highway-rules" 
-              className={`nav-link ${isActive('/highway-rules') ? 'active' : ''}`}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                isActive('/highway-rules') 
+                  ? 'bg-green-500 text-white' 
+                  : 'text-gray-300 hover:text-white hover:bg-white/10'
+              }`}
             >
-              🛣️ Highway Rules
-            </Link>
-            <Link 
-              to="/settings" 
-              className={`nav-link ${isActive('/settings') ? 'active' : ''}`}
-            >
-              Settings
+              <span>🛣️</span>
+              <span>Rules</span>
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="lg:hidden">
+          {/* Right Side */}
+          <div className="flex items-center space-x-3">
+            {/* Mobile Menu Button */}
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="text-gray-700 hover:text-blue-600 focus:outline-none"
+              className="md:hidden p-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {showMobileMenu ? (
@@ -99,73 +89,63 @@ const Navbar = () => {
                 )}
               </svg>
             </button>
-          </div>
 
-          {/* Auth Buttons / User Menu */}
-          <div className="relative">
+            {/* User Menu */}
             {user ? (
-              <>
+              <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center space-x-3 text-gray-700 hover:text-blue-600 transition-colors"
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-bold">
-                      {user?.user_metadata?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || '👤'}
+                      {user?.email?.[0]?.toUpperCase() || '?'}
                     </span>
                   </div>
-                  <div className="hidden md:block text-left">
-                    <div className="text-sm font-medium">
-                      {user?.user_metadata?.full_name || user?.email}
-                    </div>
-                    <div className="text-xs text-gray-500">Truck Driver</div>
-                  </div>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
 
-                {/* Dropdown Menu */}
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <div className="text-sm font-medium text-gray-900">
-                        {user?.user_metadata?.full_name || 'User'}
-                      </div>
-                      <div className="text-xs text-gray-500">{user?.email}</div>
+                  <div className="absolute right-0 mt-2 w-56 bg-slate-800 rounded-xl shadow-2xl border border-white/10 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-white/10">
+                      <div className="text-sm font-medium text-white truncate">{user?.email}</div>
+                      <div className="text-xs text-gray-400 mt-1">Free Account</div>
                     </div>
                     
                     <Link
                       to="/settings"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                      className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
                       onClick={() => setShowUserMenu(false)}
                     >
-                      ⚙️ Settings
+                      <span>⚙️</span>
+                      <span>Settings</span>
                     </Link>
                     
                     <button
                       onClick={handleSignOut}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
                     >
-                      🚪 Sign Out
+                      <span>🚪</span>
+                      <span>Sign Out</span>
                     </button>
                   </div>
                 )}
-              </>
+              </div>
             ) : (
-              /* Sign In / Sign Up buttons for non-logged in users */
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
                 <Link
                   to="/login"
-                  className="hidden md:block text-gray-700 hover:text-blue-600 font-medium transition-colors"
+                  className="hidden sm:block px-4 py-2 text-gray-300 hover:text-white font-medium transition-colors"
                 >
                   Sign In
                 </Link>
                 <Link
                   to="/signup"
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 text-sm"
+                  className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-red-600 transition-all shadow-lg shadow-orange-500/25"
                 >
-                  Get Started Free
+                  Start Free
                 </Link>
               </div>
             )}
@@ -174,83 +154,62 @@ const Navbar = () => {
 
         {/* Mobile Menu */}
         {showMobileMenu && (
-          <div className="lg:hidden border-t border-gray-200 bg-white">
-            <div className="px-4 py-2 space-y-1">
+          <div className="md:hidden border-t border-white/10 py-4">
+            <div className="space-y-1">
               <Link 
-                to="/" 
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive('/') ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+                to="/conversation-practice" 
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
+                  isActive('/conversation-practice') 
+                    ? 'bg-orange-500 text-white' 
+                    : 'text-gray-300 hover:text-white hover:bg-white/10'
                 }`}
                 onClick={() => setShowMobileMenu(false)}
               >
-                🏠 Home
+                <span className="text-xl">🎤</span>
+                <span>Conversation Practice</span>
               </Link>
               <Link 
                 to="/qa-training" 
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive('/qa-training') ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
+                  isActive('/qa-training') 
+                    ? 'bg-blue-500 text-white' 
+                    : 'text-gray-300 hover:text-white hover:bg-white/10'
                 }`}
                 onClick={() => setShowMobileMenu(false)}
               >
-                🚔 DOT Practice
-              </Link>
-              <Link 
-                to="/pronunciation-trainer" 
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive('/pronunciation-trainer') ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
-                }`}
-                onClick={() => setShowMobileMenu(false)}
-              >
-                🎯 Pronunciation
-              </Link>
-              <Link 
-                to="/speed-quiz" 
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive('/speed-quiz') ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
-                }`}
-                onClick={() => setShowMobileMenu(false)}
-              >
-                ⚡ Speed Quiz
+                <span className="text-xl">🚔</span>
+                <span>DOT Practice</span>
               </Link>
               <Link 
                 to="/highway-rules" 
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive('/highway-rules') ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
+                  isActive('/highway-rules') 
+                    ? 'bg-green-500 text-white' 
+                    : 'text-gray-300 hover:text-white hover:bg-white/10'
                 }`}
                 onClick={() => setShowMobileMenu(false)}
               >
-                🛣️ Highway Rules
-              </Link>
-              <Link 
-                to="/settings" 
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive('/settings') ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
-                }`}
-                onClick={() => setShowMobileMenu(false)}
-              >
-                ⚙️ Settings
+                <span className="text-xl">🛣️</span>
+                <span>Highway Rules</span>
               </Link>
               
-              {/* Mobile Auth Buttons for non-logged in users */}
               {!user && (
-                <>
-                  <div className="border-t border-gray-200 mt-2 pt-2">
-                    <Link 
-                      to="/login" 
-                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
-                      onClick={() => setShowMobileMenu(false)}
-                    >
-                      🔑 Sign In
-                    </Link>
-                    <Link 
-                      to="/signup" 
-                      className="block px-3 py-2 rounded-md text-base font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 mx-3 mt-2"
-                      onClick={() => setShowMobileMenu(false)}
-                    >
-                      🚀 Get Started Free
-                    </Link>
-                  </div>
-                </>
+                <div className="pt-4 mt-4 border-t border-white/10 space-y-2 px-4">
+                  <Link 
+                    to="/login" 
+                    className="block py-3 text-center text-gray-300 hover:text-white font-medium transition-colors"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    Sign In
+                  </Link>
+                  <Link 
+                    to="/signup" 
+                    className="block py-3 text-center bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-semibold"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    Start Free
+                  </Link>
+                </div>
               )}
             </div>
           </div>

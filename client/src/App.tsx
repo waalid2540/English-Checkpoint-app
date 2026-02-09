@@ -41,58 +41,27 @@ function App() {
           {/* Install app page */}
           <Route path="/install" element={<InstallApp />} />
           
-          {/* Landing page */}
-          <Route path="/" element={<LandingPage />} />
+          {/* Home - Clean new design */}
+          <Route path="/" element={<Home />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/dashboard" element={<Home />} />
           
-          {/* Dashboard home page */}
-          <Route path="/home" element={
-            <div className="min-h-screen bg-gray-50">
-              <Navbar />
-              <main className="container mx-auto px-4 py-8">
-                <Home />
-              </main>
-            </div>
-          } />
-          
-          {/* Protected routes */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <div className="min-h-screen bg-gray-50">
-                <Navbar />
-                <main className="container mx-auto px-4 py-8">
-                  <Home />
-                </main>
-              </div>
-            </ProtectedRoute>
-          } />
-          
+          {/* Core 3 Features */}
           <Route path="/qa-training" element={
-            <div className="min-h-screen bg-gray-50">
+            <div className="min-h-screen bg-slate-900">
               <Navbar />
-              <main className="container mx-auto px-4 py-8">
+              <main className="max-w-7xl mx-auto px-4 py-8">
                 <QATraining />
               </main>
             </div>
           } />
           
-          <Route path="/pronunciation-trainer" element={
-            <div className="min-h-screen">
-              <Navbar />
-              <PronunciationTrainer />
-            </div>
-          } />
-          
-          <Route path="/speed-quiz" element={
-            <div className="min-h-screen">
-              <Navbar />
-              <SpeedQuiz />
-            </div>
-          } />
-          
           <Route path="/highway-rules" element={
-            <div className="min-h-screen">
+            <div className="min-h-screen bg-slate-900">
               <Navbar />
-              <HighwayRules />
+              <main className="max-w-7xl mx-auto px-4 py-8">
+                <HighwayRules />
+              </main>
             </div>
           } />
           
@@ -102,9 +71,9 @@ function App() {
           
           <Route path="/settings" element={
             <ProtectedRoute>
-              <div className="min-h-screen bg-gray-50">
+              <div className="min-h-screen bg-slate-900">
                 <Navbar />
-                <main className="container mx-auto px-4 py-8">
+                <main className="max-w-4xl mx-auto px-4 py-8">
                   <Settings />
                 </main>
               </div>
