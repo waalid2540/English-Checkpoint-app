@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { useAuth } from '../contexts/AuthContext'
 import TalkingAvatar from '../components/TalkingAvatar'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://english-checkpoint-backend.onrender.com'
@@ -13,82 +12,35 @@ interface Message {
   timestamp: Date
 }
 
-interface Scenario {
-  id: string
-  title: string
-  icon: string
-  description: string
-  systemPrompt: string
-  starterMessage: string
-}
+const SYSTEM_PROMPT = `You are a friendly English conversation partner. Your job is to:
 
-const SCENARIOS: Scenario[] = [
-  {
-    id: 'job-interview',
-    title: 'Job Interview',
-    icon: '💼',
-    description: 'Practice common interview questions',
-    systemPrompt: `You are a hiring manager conducting a job interview. Ask common interview questions one at a time: "Tell me about yourself", "Why do you want this job?", "What are your strengths?", "Where do you see yourself in 5 years?", "Do you have any questions for me?". Be professional and encouraging. Keep responses under 30 words. Give brief feedback on answers.`,
-    starterMessage: "Hello! Thanks for coming in today. Please have a seat. Let's start with a simple question - can you tell me a little about yourself?"
-  },
-  {
-    id: 'phone-call',
-    title: 'Phone Call',
-    icon: '📞',
-    description: 'Practice making phone calls',
-    systemPrompt: `You are a customer service representative or business person receiving a phone call. Help the caller with common phone tasks: making appointments, asking for information, placing orders, reporting problems. Be helpful and professional. Keep responses short (under 30 words). Ask clarifying questions when needed.`,
-    starterMessage: "Hello, thank you for calling. How can I help you today?"
-  },
-  {
-    id: 'restaurant',
-    title: 'Restaurant',
-    icon: '🍽️',
-    description: 'Order food and talk to servers',
-    systemPrompt: `You are a friendly restaurant server. Help customers order food, explain menu items, take special requests, and make recommendations. Be warm and helpful. Keep responses short (under 25 words). Suggest specials and ask about preferences.`,
-    starterMessage: "Hi there! Welcome to our restaurant. Can I start you off with something to drink while you look at the menu?"
-  },
-  {
-    id: 'shopping',
-    title: 'Shopping',
-    icon: '🛒',
-    description: 'Practice at stores and shops',
-    systemPrompt: `You are a helpful store employee. Assist customers finding items, explaining products, discussing sizes/colors, handling returns, and answering questions about prices and sales. Be friendly and helpful. Keep responses under 25 words.`,
-    starterMessage: "Hi, welcome to the store! Are you looking for anything specific today, or just browsing?"
-  },
-  {
-    id: 'doctor',
-    title: 'Doctor Visit',
-    icon: '🏥',
-    description: 'Practice medical conversations',
-    systemPrompt: `You are a friendly doctor or medical receptionist. Help patients describe symptoms, schedule appointments, understand instructions, and ask health questions. Be patient and clear. Keep responses under 30 words. Ask about symptoms, duration, and medical history.`,
-    starterMessage: "Hello! I'm Dr. Smith. What brings you in today? Please describe what you've been experiencing."
-  },
-  {
-    id: 'free-talk',
-    title: 'Free Conversation',
-    icon: '💬',
-    description: 'Talk about anything you want',
-    systemPrompt: `You are a friendly English conversation partner. Have natural, encouraging conversations about any topic - hobbies, travel, family, work, dreams, news. Gently correct major grammar mistakes. Keep responses under 35 words. Be warm, supportive and ask follow-up questions.`,
-    starterMessage: "Hey! Great to talk with you. What's on your mind today? We can chat about anything - your day, your interests, whatever you like!"
-  },
-  {
-    id: 'dot-checkpoint',
-    title: 'DOT Checkpoint',
-    icon: '🚔',
-    description: 'For truck drivers - practice with officers',
-    systemPrompt: `You are a DOT officer at a weigh station. Ask a truck driver for documents, check their logbook, ask about cargo, and do a routine inspection. Be professional but firm. Keep responses short (under 25 words). Common questions: "License and registration", "Where are you heading?", "What are you hauling?", "Can I see your logbook?"`,
-    starterMessage: "Good morning, driver. Please pull forward to the inspection area. License and registration, please."
-  }
+1. Have natural, flowing conversations about ANY topic the user wants
+2. Be encouraging and supportive
+3. Gently correct major grammar or pronunciation mistakes (but don't over-correct)
+4. Ask follow-up questions to keep the conversation going
+5. Adjust your vocabulary to match the user's level
+
+Keep responses SHORT (under 40 words) so conversation flows naturally. Be warm, patient, and make the user feel comfortable practicing.
+
+You can discuss: their day, hobbies, work, family, dreams, news, culture, food, travel, sports, movies, music - ANYTHING they want to talk about.
+
+If they seem stuck, suggest a topic or ask an easy question.`
+
+const GREETINGS = [
+  "Hey! Great to see you! What would you like to talk about today?",
+  "Hi there! Ready to practice some English? What's on your mind?",
+  "Hello! I'm excited to chat with you. What should we talk about?",
+  "Hey! How's your day going? Tell me anything!",
 ]
 
 const ConversationPractice = () => {
-  const { user, loading } = useAuth()
   const navigate = useNavigate()
   
-  const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [isThinking, setIsThinking] = useState(false)
+  const [isStarted, setIsStarted] = useState(false)
   const [avatarMood, setAvatarMood] = useState<'neutral' | 'speaking' | 'listening' | 'thinking'>('neutral')
   
   const recognitionRef = useRef<any>(null)
@@ -99,32 +51,30 @@ const ConversationPractice = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Start scenario
-  const startScenario = (scenario: Scenario) => {
-    setSelectedScenario(scenario)
+  // Start conversation
+  const startConversation = async () => {
+    setIsStarted(true)
     
-    // Add starter message
+    // Random greeting
+    const greeting = GREETINGS[Math.floor(Math.random() * GREETINGS.length)]
+    
     const starterMsg: Message = {
       id: '1',
-      text: scenario.starterMessage,
+      text: greeting,
       sender: 'coach',
       timestamp: new Date()
     }
     setMessages([starterMsg])
     
-    // Speak the starter message
-    speakText(scenario.starterMessage)
-    
-    // Start listening after speaking
-    setTimeout(() => {
-      startListening()
-    }, 3000)
+    // Speak greeting then start listening
+    await speakText(greeting)
+    startListening()
   }
 
   // Voice Recognition
   const startListening = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Please use Chrome or Edge browser for voice features')
+      alert('Please use Chrome or Safari for voice features')
       return
     }
 
@@ -150,6 +100,7 @@ const ConversationPractice = () => {
           // Stop listening while processing
           recognition.stop()
           setIsListening(false)
+          setIsThinking(true)
           setAvatarMood('thinking')
           
           // Add user message
@@ -163,6 +114,7 @@ const ConversationPractice = () => {
           
           // Get AI response
           const aiResponse = await getAIResponse(text)
+          setIsThinking(false)
           
           // Add AI message
           const aiMsg: Message = {
@@ -173,35 +125,38 @@ const ConversationPractice = () => {
           }
           setMessages(prev => [...prev, aiMsg])
           
-          // Speak response
+          // Speak response then resume listening
           await speakText(aiResponse)
-          
-          // Resume listening
-          setTimeout(() => {
-            startListening()
-          }, 500)
+          startListening()
         }
       }
     }
 
     recognition.onerror = (error: any) => {
       console.log('Speech recognition error:', error)
-      if (error.error !== 'no-speech') {
+      setIsListening(false)
+      
+      // Auto-restart on non-fatal errors
+      if (error.error !== 'aborted' && error.error !== 'no-speech') {
         setTimeout(() => {
-          if (recognitionRef.current) {
-            try {
-              recognitionRef.current.start()
-            } catch (e) {}
+          if (isStarted && !isSpeaking && !isThinking) {
+            startListening()
           }
         }, 1000)
       }
     }
 
     recognition.onend = () => {
-      setAvatarMood('neutral')
+      if (!isSpeaking && !isThinking && isStarted) {
+        setAvatarMood('neutral')
+      }
     }
 
-    recognition.start()
+    try {
+      recognition.start()
+    } catch (e) {
+      console.log('Recognition already started')
+    }
   }
 
   const stopListening = () => {
@@ -218,7 +173,7 @@ const ConversationPractice = () => {
       setAvatarMood('speaking')
       
       const utterance = new SpeechSynthesisUtterance(text)
-      utterance.rate = 0.85
+      utterance.rate = 0.9
       utterance.pitch = 1
       utterance.volume = 1
       
@@ -246,7 +201,6 @@ const ConversationPractice = () => {
         resolve()
       }
       
-      // Cancel any ongoing speech
       speechSynthesis.cancel()
       speechSynthesis.speak(utterance)
     })
@@ -254,86 +208,85 @@ const ConversationPractice = () => {
 
   // Get AI response
   const getAIResponse = async (userText: string): Promise<string> => {
-    if (!selectedScenario) return "Let's keep practicing!"
-    
     try {
       const response = await axios.post(`${API_BASE_URL}/api/ai/chat`, {
         message: userText,
-        systemPrompt: selectedScenario.systemPrompt,
-        conversationHistory: messages.slice(-6).map(m => ({
+        systemPrompt: SYSTEM_PROMPT,
+        conversationHistory: messages.slice(-10).map(m => ({
           role: m.sender === 'user' ? 'user' : 'assistant',
           content: m.text
         }))
       })
       
-      return response.data.reply || "I understand. Please continue."
+      return response.data.reply || "That's interesting! Tell me more."
       
     } catch (error) {
       console.error('AI Error:', error)
-      return "I'm sorry, can you repeat that?"
+      return "Sorry, I didn't catch that. Can you say it again?"
     }
   }
 
-  // End session
-  const endSession = () => {
+  // End conversation
+  const endConversation = () => {
     stopListening()
     speechSynthesis.cancel()
-    setSelectedScenario(null)
+    setIsStarted(false)
     setMessages([])
     setAvatarMood('neutral')
   }
 
-  // Loading screen
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-blue-900">
-        <div className="text-center text-white">
-          <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p>Loading...</p>
-        </div>
-      </div>
-    )
+  // Tap to talk (manual trigger)
+  const tapToTalk = () => {
+    if (isListening) {
+      stopListening()
+    } else if (!isSpeaking && !isThinking) {
+      startListening()
+    }
   }
 
-  // Scenario selection screen
-  if (!selectedScenario) {
+  // Start screen
+  if (!isStarted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-6">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold text-white mb-3">
-              🎤 Conversation Practice
-            </h1>
-            <p className="text-blue-200 text-lg">
-              Choose a scenario and practice real conversations
-            </p>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex flex-col items-center justify-center p-6">
+        {/* Animated background */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/3 right-1/4 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-pink-500/20 rounded-full blur-3xl animate-pulse delay-500"></div>
+        </div>
+
+        <div className="relative z-10 text-center max-w-md">
+          {/* Avatar preview */}
+          <div className="mb-8">
+            <TalkingAvatar mood="neutral" size="lg" />
           </div>
 
-          {/* Scenario Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {SCENARIOS.map((scenario) => (
-              <button
-                key={scenario.id}
-                onClick={() => startScenario(scenario)}
-                className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl p-6 text-left hover:bg-white/20 transition-all hover:scale-105 hover:shadow-xl"
-              >
-                <div className="text-4xl mb-4">{scenario.icon}</div>
-                <h3 className="text-xl font-bold text-white mb-2">{scenario.title}</h3>
-                <p className="text-blue-200 text-sm">{scenario.description}</p>
-              </button>
-            ))}
-          </div>
+          <h1 className="text-4xl font-bold text-white mb-4">
+            AI English Coach
+          </h1>
+          
+          <p className="text-xl text-purple-200 mb-8">
+            Practice speaking English about <span className="text-white font-semibold">anything</span> you want
+          </p>
+
+          <button
+            onClick={startConversation}
+            className="px-10 py-5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white text-xl font-bold rounded-full shadow-2xl transform hover:scale-105 transition-all"
+          >
+            🎤 Start Talking
+          </button>
+
+          <p className="mt-6 text-purple-300 text-sm">
+            Free conversation • No scripts • Just talk!
+          </p>
 
           {/* Back button */}
-          <div className="text-center mt-10">
-            <button
-              onClick={() => navigate(-1)}
-              className="text-blue-300 hover:text-white transition-colors"
-            >
-              ← Back to Dashboard
-            </button>
-          </div>
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-8 text-purple-300 hover:text-white transition-colors"
+          >
+            ← Back
+          </button>
         </div>
       </div>
     )
@@ -341,73 +294,104 @@ const ConversationPractice = () => {
 
   // Conversation screen
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex flex-col lg:flex-row">
-      {/* Avatar Section */}
-      <div className="lg:w-1/2 flex flex-col items-center justify-center p-8 relative">
-        {/* Animated background */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        </div>
-
-        {/* Animated Talking Avatar */}
-        <div className="relative z-10">
-          <TalkingAvatar mood={avatarMood} size="lg" />
-        </div>
-
-        {/* Scenario info */}
-        <div className="mt-8 text-center">
-          <div className="text-3xl mb-2">{selectedScenario.icon}</div>
-          <h2 className="text-xl font-bold text-white">{selectedScenario.title}</h2>
-          <p className="text-blue-200 text-sm">{selectedScenario.description}</p>
-        </div>
-
-        {/* End Session button */}
-        <button
-          onClick={endSession}
-          className="mt-8 px-6 py-3 bg-red-500/80 hover:bg-red-500 text-white rounded-full font-medium transition-colors"
-        >
-          End Session
-        </button>
+    <div className="h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex flex-col">
+      {/* Animated background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
 
-      {/* Chat Section */}
-      <div className="lg:w-1/2 bg-white/5 backdrop-blur flex flex-col">
-        {/* Chat header */}
-        <div className="bg-white/10 p-4 border-b border-white/10">
-          <h3 className="text-white font-semibold">Conversation</h3>
-          <p className="text-blue-200 text-sm">Just speak naturally - I'm listening!</p>
+      {/* Top bar */}
+      <div className="relative z-10 flex items-center justify-between p-4 bg-black/20">
+        <button
+          onClick={endConversation}
+          className="px-4 py-2 bg-red-500/80 hover:bg-red-500 text-white rounded-full text-sm font-medium transition-colors"
+        >
+          ✕ End
+        </button>
+        
+        <div className="text-white font-medium">
+          {isListening && <span className="text-green-400">🎤 Listening...</span>}
+          {isSpeaking && <span className="text-blue-400">🔊 Speaking...</span>}
+          {isThinking && <span className="text-yellow-400">💭 Thinking...</span>}
+          {!isListening && !isSpeaking && !isThinking && <span className="text-gray-400">Tap mic to talk</span>}
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((message) => (
-            <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                message.sender === 'user' 
-                  ? 'bg-blue-500 text-white' 
-                  : 'bg-white/20 text-white'
-              }`}>
-                <p className="text-sm leading-relaxed">{message.text}</p>
-                {message.sender === 'coach' && (
-                  <button
-                    onClick={() => speakText(message.text)}
-                    disabled={isSpeaking}
-                    className="mt-2 text-xs opacity-70 hover:opacity-100"
-                  >
-                    🔊 Repeat
-                  </button>
-                )}
+        <div className="w-16"></div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col lg:flex-row relative z-10 overflow-hidden">
+        
+        {/* Avatar section */}
+        <div className="lg:w-1/2 flex flex-col items-center justify-center p-4 lg:p-8">
+          <TalkingAvatar mood={avatarMood} size="lg" />
+          
+          {/* Tap to talk button */}
+          <button
+            onClick={tapToTalk}
+            disabled={isSpeaking || isThinking}
+            className={`mt-8 w-24 h-24 rounded-full flex items-center justify-center text-4xl shadow-2xl transition-all transform ${
+              isListening 
+                ? 'bg-green-500 animate-pulse scale-110' 
+                : isSpeaking || isThinking
+                  ? 'bg-gray-500 opacity-50 cursor-not-allowed'
+                  : 'bg-white/20 hover:bg-white/30 hover:scale-105'
+            }`}
+          >
+            {isListening ? '🎤' : isSpeaking ? '🔊' : isThinking ? '💭' : '🎤'}
+          </button>
+          
+          <p className="mt-4 text-purple-200 text-sm">
+            {isListening ? 'Speak now...' : 'Tap to talk'}
+          </p>
+        </div>
+
+        {/* Chat section */}
+        <div className="lg:w-1/2 flex flex-col bg-black/20 backdrop-blur">
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {messages.map((message) => (
+              <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                  message.sender === 'user' 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-white/20 text-white'
+                }`}>
+                  <p className="text-sm leading-relaxed">{message.text}</p>
+                  {message.sender === 'coach' && (
+                    <button
+                      onClick={() => speakText(message.text)}
+                      disabled={isSpeaking}
+                      className="mt-2 text-xs opacity-60 hover:opacity-100 transition-opacity"
+                    >
+                      🔊 Repeat
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
+            ))}
+            
+            {isThinking && (
+              <div className="flex justify-start">
+                <div className="bg-white/20 text-white rounded-2xl px-4 py-3">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce delay-100"></div>
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce delay-200"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} />
+          </div>
 
-        {/* Tips */}
-        <div className="bg-white/10 p-4 border-t border-white/10">
-          <div className="text-center text-sm text-blue-200">
-            <p>💡 Tip: Speak clearly and take your time</p>
+          {/* Tips */}
+          <div className="p-4 bg-black/20 border-t border-white/10">
+            <p className="text-center text-purple-200 text-sm">
+              💡 Talk about anything — your day, hobbies, dreams, questions!
+            </p>
           </div>
         </div>
       </div>
