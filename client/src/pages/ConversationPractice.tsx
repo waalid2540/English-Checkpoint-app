@@ -24,52 +24,60 @@ interface Scenario {
 
 const SCENARIOS: Scenario[] = [
   {
-    id: 'weigh-station',
-    title: 'Weigh Station',
-    icon: '⚖️',
-    description: 'Practice talking to DOT officers',
-    systemPrompt: `You are a DOT officer at a weigh station. Roleplay asking a truck driver for their documents, checking their logbook, asking about their cargo, and doing a routine inspection. Be professional but firm. Ask one question at a time. Keep responses short (under 25 words). Common questions: "License and registration please", "Where are you heading?", "What are you hauling?", "Can I see your logbook?", "How many hours have you been driving?"`,
-    starterMessage: "Good morning, driver. Please pull forward to the inspection area. License and registration, please."
+    id: 'job-interview',
+    title: 'Job Interview',
+    icon: '💼',
+    description: 'Practice common interview questions',
+    systemPrompt: `You are a hiring manager conducting a job interview. Ask common interview questions one at a time: "Tell me about yourself", "Why do you want this job?", "What are your strengths?", "Where do you see yourself in 5 years?", "Do you have any questions for me?". Be professional and encouraging. Keep responses under 30 words. Give brief feedback on answers.`,
+    starterMessage: "Hello! Thanks for coming in today. Please have a seat. Let's start with a simple question - can you tell me a little about yourself?"
   },
   {
-    id: 'dispatcher',
-    title: 'Dispatcher Call',
+    id: 'phone-call',
+    title: 'Phone Call',
     icon: '📞',
-    description: 'Practice phone calls with dispatch',
-    systemPrompt: `You are a trucking company dispatcher. Have a realistic phone conversation with a truck driver. Discuss load assignments, delivery times, route changes, delays, or pickup confirmations. Keep responses short (under 30 words). Be professional but friendly. Example topics: new load assignment, asking for ETA, reporting delays, confirming delivery address.`,
-    starterMessage: "Hey driver, this is dispatch. I've got a load for you. Are you available to pick up in Sacramento tomorrow morning?"
+    description: 'Practice making phone calls',
+    systemPrompt: `You are a customer service representative or business person receiving a phone call. Help the caller with common phone tasks: making appointments, asking for information, placing orders, reporting problems. Be helpful and professional. Keep responses short (under 30 words). Ask clarifying questions when needed.`,
+    starterMessage: "Hello, thank you for calling. How can I help you today?"
   },
   {
-    id: 'truck-stop',
-    title: 'Truck Stop',
-    icon: '⛽',
-    description: 'Practice at fuel stations & restaurants',
-    systemPrompt: `You are a truck stop attendant or restaurant server. Have natural conversations about fueling, parking, showers, food orders, or directions. Keep responses friendly and short (under 25 words). Help the driver with common truck stop needs.`,
-    starterMessage: "Welcome to Flying J! Pump 7 is open for you. Will you be getting a shower today too?"
+    id: 'restaurant',
+    title: 'Restaurant',
+    icon: '🍽️',
+    description: 'Order food and talk to servers',
+    systemPrompt: `You are a friendly restaurant server. Help customers order food, explain menu items, take special requests, and make recommendations. Be warm and helpful. Keep responses short (under 25 words). Suggest specials and ask about preferences.`,
+    starterMessage: "Hi there! Welcome to our restaurant. Can I start you off with something to drink while you look at the menu?"
   },
   {
-    id: 'receiver',
-    title: 'Delivery/Pickup',
-    icon: '📦',
-    description: 'Practice at warehouses & loading docks',
-    systemPrompt: `You are a warehouse receiver or shipping clerk. Roleplay checking in a truck driver for delivery or pickup. Ask for BOL, door assignment, appointment time, trailer number. Keep responses professional and short (under 25 words).`,
-    starterMessage: "Morning, driver. Pull up to the guard shack. Do you have an appointment? What's your trailer number?"
+    id: 'shopping',
+    title: 'Shopping',
+    icon: '🛒',
+    description: 'Practice at stores and shops',
+    systemPrompt: `You are a helpful store employee. Assist customers finding items, explaining products, discussing sizes/colors, handling returns, and answering questions about prices and sales. Be friendly and helpful. Keep responses under 25 words.`,
+    starterMessage: "Hi, welcome to the store! Are you looking for anything specific today, or just browsing?"
   },
   {
-    id: 'mechanic',
-    title: 'Truck Repair',
-    icon: '🔧',
-    description: 'Practice explaining truck problems',
-    systemPrompt: `You are a truck mechanic at a repair shop. Help a truck driver explain their truck problems. Ask diagnostic questions about symptoms, sounds, warning lights. Keep responses helpful and short (under 30 words). Common issues: brakes, engine problems, tire issues, electrical problems.`,
-    starterMessage: "Hey, what seems to be the problem with your truck today?"
+    id: 'doctor',
+    title: 'Doctor Visit',
+    icon: '🏥',
+    description: 'Practice medical conversations',
+    systemPrompt: `You are a friendly doctor or medical receptionist. Help patients describe symptoms, schedule appointments, understand instructions, and ask health questions. Be patient and clear. Keep responses under 30 words. Ask about symptoms, duration, and medical history.`,
+    starterMessage: "Hello! I'm Dr. Smith. What brings you in today? Please describe what you've been experiencing."
   },
   {
     id: 'free-talk',
     title: 'Free Conversation',
     icon: '💬',
-    description: 'Practice any topic you want',
-    systemPrompt: `You are a friendly English conversation partner helping a truck driver improve their English. Have natural, encouraging conversations about any topic. Correct major grammar mistakes gently. Keep responses under 35 words. Be supportive and patient.`,
-    starterMessage: "Hey! Great to talk with you. What would you like to practice today? We can talk about anything!"
+    description: 'Talk about anything you want',
+    systemPrompt: `You are a friendly English conversation partner. Have natural, encouraging conversations about any topic - hobbies, travel, family, work, dreams, news. Gently correct major grammar mistakes. Keep responses under 35 words. Be warm, supportive and ask follow-up questions.`,
+    starterMessage: "Hey! Great to talk with you. What's on your mind today? We can chat about anything - your day, your interests, whatever you like!"
+  },
+  {
+    id: 'dot-checkpoint',
+    title: 'DOT Checkpoint',
+    icon: '🚔',
+    description: 'For truck drivers - practice with officers',
+    systemPrompt: `You are a DOT officer at a weigh station. Ask a truck driver for documents, check their logbook, ask about cargo, and do a routine inspection. Be professional but firm. Keep responses short (under 25 words). Common questions: "License and registration", "Where are you heading?", "What are you hauling?", "Can I see your logbook?"`,
+    starterMessage: "Good morning, driver. Please pull forward to the inspection area. License and registration, please."
   }
 ]
 

@@ -2,9 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useSubscription } from '../hooks/useSubscription'
-import FeatureAccess from '../components/FeatureAccess'
 import InstallPrompt from '../components/InstallPrompt'
-import PaymentDebugger from '../components/PaymentDebugger'
 
 const Home = () => {
   const { user } = useAuth()
@@ -12,62 +10,28 @@ const Home = () => {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
 
   useEffect(() => {
-    console.log('🔍 Home useEffect triggered - user:', user?.email || 'not logged in')
-    console.log('🔍 Current URL:', window.location.href)
-    console.log('🔍 Search params:', window.location.search)
-    
     const urlParams = new URLSearchParams(window.location.search)
     const isSuccess = urlParams.get('success') === 'true'
     const isAutoActivate = urlParams.get('auto_activate') === 'true'
     
-    console.log('🔍 URL params:', {
-      success: urlParams.get('success'),
-      auto_activate: urlParams.get('auto_activate'),
-      isSuccess,
-      isAutoActivate
-    })
-    
-    // Check for email activation link
-    const activateUserId = urlParams.get('activate')
-    const activateToken = urlParams.get('token')
-    
-    if (activateUserId && activateToken && user) {
-      console.log('🎉 Email activation detected, activating premium...')
-      handleEmailActivation(activateUserId, activateToken)
-      return
-    }
-    
-    // Check for success parameter in URL
     if (isSuccess) {
       setShowSuccessMessage(true)
-      console.log('🎉 Payment successful! Auto-activate:', isAutoActivate, 'User:', !!user)
       
-      // Auto-activate premium if requested and user is available
       if (isAutoActivate && user) {
-        console.log('🚀 Auto-activating premium access...')
         autoActivatePremium()
-        return // Don't clear URL until after activation
+        return
       }
       
-      // Clear the URL parameter
       window.history.replaceState({}, document.title, window.location.pathname)
-      
-      // Force subscription status refresh if not auto-activating
-      setTimeout(() => {
-        window.location.reload()
-      }, 1000)
-      
-      // Hide success message after 8 seconds
+      setTimeout(() => window.location.reload(), 1000)
       setTimeout(() => setShowSuccessMessage(false), 8000)
     }
   }, [user])
 
   const autoActivatePremium = async () => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://english-checkpoint-app.onrender.com'
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://english-checkpoint-backend.onrender.com'
       const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
-      
-      console.log('🔄 Auto-activating premium for user after payment...')
       
       const response = await fetch(`${API_BASE_URL}/api/subscription/activate`, {
         method: 'POST',
@@ -77,325 +41,316 @@ const Home = () => {
         }
       })
       
-      const result = await response.json()
-      console.log('🔍 Auto-activation response:', result)
-      
       if (response.ok) {
-        console.log('✅ Premium auto-activated successfully!')
-        alert('🎉 Premium access activated! Welcome to Premium!')
-        // Clear URL parameters
+        alert('🎉 Premium access activated!')
         window.history.replaceState({}, document.title, window.location.pathname)
         setTimeout(() => window.location.reload(), 1500)
-      } else {
-        console.error('❌ Auto-activation failed:', result)
-        alert('❌ Auto-activation failed: ' + (result.error || 'Unknown error'))
-        // Clear URL parameters even if failed
-        window.history.replaceState({}, document.title, window.location.pathname)
-        setTimeout(() => window.location.reload(), 1000)
       }
     } catch (error) {
-      console.error('❌ Auto-activation error:', error)
+      console.error('Activation error:', error)
       setTimeout(() => window.location.reload(), 1000)
     }
   }
 
-  const handleEmailActivation = async (userId: string, token: string) => {
-    try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://english-checkpoint-app.onrender.com'
-      const { data: { session } } = await import('../lib/supabase').then(m => m.supabase.auth.getSession())
-      
-      const response = await fetch(`${API_BASE_URL}/api/subscription/activate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ userId, token })
-      })
-      
-      if (response.ok) {
-        setShowSuccessMessage(true)
-        // Clear URL parameters
-        window.history.replaceState({}, document.title, window.location.pathname)
-        // Reload to refresh subscription status
-        setTimeout(() => window.location.reload(), 1000)
-      } else {
-        console.error('❌ Email activation failed')
-      }
-    } catch (error) {
-      console.error('❌ Email activation error:', error)
-    }
-  }
-
   return (
-    <div className="animate-fade-in">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
       {/* Success Message */}
       {showSuccessMessage && (
-        <div className="fixed top-4 right-4 bg-green-500 text-white p-6 rounded-xl shadow-lg z-50 max-w-sm">
+        <div className="fixed top-4 right-4 bg-green-500 text-white p-6 rounded-xl shadow-2xl z-50 max-w-sm animate-bounce">
           <div className="flex items-center space-x-3">
-            <span className="text-2xl">🎉</span>
+            <span className="text-3xl">🎉</span>
             <div>
-              <h3 className="font-bold">Premium Activated!</h3>
-              <p className="text-sm">You now have unlimited access to all features!</p>
-              <p className="text-xs mt-1 opacity-80">Welcome to Premium! 🚀</p>
+              <h3 className="font-bold text-lg">Premium Activated!</h3>
+              <p className="text-sm opacity-90">Unlimited access unlocked!</p>
             </div>
           </div>
         </div>
       )}
-      
+
       {/* Hero Section */}
-      <section className="hero-section text-white py-20 px-6 rounded-3xl mb-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative z-10 text-center max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-slide-up">
-            Master English for
-            <span className="block text-yellow-300">Truck Driving</span>
+      <section className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+        </div>
+
+        <div className="relative z-10 text-center max-w-5xl mx-auto">
+          {/* Logo/Brand */}
+          <div className="mb-8">
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl shadow-2xl mb-6">
+              <span className="text-5xl">🎯</span>
+            </div>
+          </div>
+
+          {/* Main Headline */}
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white mb-6 leading-tight">
+            Master English
+            <span className="block bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent">
+              With AI
+            </span>
           </h1>
-          <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-2xl mx-auto">
-            Professional English training designed specifically for truck drivers. 
-            Practice conversations, learn DOT regulations, and communicate confidently on the road.
+
+          <p className="text-xl md:text-2xl text-blue-200 mb-12 max-w-2xl mx-auto leading-relaxed">
+            Practice real conversations, pass DOT inspections, and speak confidently. 
+            <span className="text-white font-semibold"> Powered by AI.</span>
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <FeatureAccess 
-              featureName="DOT Practice Training"
-              targetPath="/qa-training"
-              className="btn-primary text-lg px-8 py-4 cursor-pointer text-center"
-            >
-              🚔 Start DOT Practice {!user && '(Free Trial)'}
-            </FeatureAccess>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <Link
-              to="/speed-quiz"
-              className="glass-effect text-white font-semibold py-4 px-8 rounded-xl hover:bg-white/20 transition-all duration-200 cursor-pointer text-center"
+              to="/conversation-practice"
+              className="group px-10 py-5 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xl font-bold rounded-2xl shadow-2xl hover:shadow-orange-500/50 transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3"
             >
-              ⚡ Speed Quiz Challenge
+              <span className="text-2xl">🎤</span>
+              Start Speaking
+              <svg className="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </Link>
+            
+            {!user && (
+              <Link
+                to="/signup"
+                className="px-10 py-5 bg-white/10 backdrop-blur text-white text-xl font-bold rounded-2xl border border-white/30 hover:bg-white/20 transition-all duration-300"
+              >
+                Create Free Account
+              </Link>
+            )}
+          </div>
+
+          {/* Social Proof */}
+          <div className="flex flex-wrap items-center justify-center gap-8 text-blue-200">
+            <div className="flex items-center gap-2">
+              <span className="text-green-400 text-2xl">✓</span>
+              <span>9,000+ TikTok Followers</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-green-400 text-2xl">✓</span>
+              <span>AI-Powered</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-green-400 text-2xl">✓</span>
+              <span>Voice Recognition</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+          <svg className="w-8 h-8 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </div>
+      </section>
+
+      {/* 3 Core Features */}
+      <section className="py-24 px-4">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold text-center text-white mb-4">
+            3 Powerful Features
+          </h2>
+          <p className="text-xl text-blue-200 text-center mb-16 max-w-2xl mx-auto">
+            Everything you need to speak English confidently. Nothing more, nothing less.
+          </p>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Feature 1: Conversation Practice */}
+            <Link 
+              to="/conversation-practice"
+              className="group relative bg-gradient-to-br from-orange-500/20 to-red-500/20 backdrop-blur border border-orange-500/30 rounded-3xl p-8 hover:border-orange-400 transition-all duration-300 hover:transform hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/20"
+            >
+              <div className="absolute top-4 right-4 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                POPULAR
+              </div>
+              
+              <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg">
+                <span className="text-4xl">🎤</span>
+              </div>
+              
+              <h3 className="text-2xl font-bold text-white mb-4">Conversation Practice</h3>
+              
+              <p className="text-blue-200 mb-6 leading-relaxed">
+                Talk with AI in real scenarios. Practice job interviews, phone calls, everyday conversations, and more. The AI listens and responds naturally.
+              </p>
+              
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center gap-3 text-white">
+                  <span className="text-green-400">✓</span> Voice recognition
+                </li>
+                <li className="flex items-center gap-3 text-white">
+                  <span className="text-green-400">✓</span> AI conversations
+                </li>
+                <li className="flex items-center gap-3 text-white">
+                  <span className="text-green-400">✓</span> Multiple scenarios
+                </li>
+              </ul>
+              
+              <div className="flex items-center text-orange-400 font-semibold group-hover:text-orange-300">
+                Start Talking
+                <svg className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </div>
+            </Link>
+
+            {/* Feature 2: DOT Practice */}
+            <Link 
+              to="/qa-training"
+              className="group relative bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur border border-blue-500/30 rounded-3xl p-8 hover:border-blue-400 transition-all duration-300 hover:transform hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20"
+            >
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg">
+                <span className="text-4xl">🚔</span>
+              </div>
+              
+              <h3 className="text-2xl font-bold text-white mb-4">DOT Practice</h3>
+              
+              <p className="text-blue-200 mb-6 leading-relaxed">
+                Master 200+ real DOT checkpoint questions. Learn exactly what officers ask and how to respond with confidence. Audio included.
+              </p>
+              
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center gap-3 text-white">
+                  <span className="text-green-400">✓</span> 200+ questions
+                </li>
+                <li className="flex items-center gap-3 text-white">
+                  <span className="text-green-400">✓</span> Real scenarios
+                </li>
+                <li className="flex items-center gap-3 text-white">
+                  <span className="text-green-400">✓</span> Audio training
+                </li>
+              </ul>
+              
+              <div className="flex items-center text-blue-400 font-semibold group-hover:text-blue-300">
+                Start Practice
+                <svg className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </div>
+            </Link>
+
+            {/* Feature 3: Highway Rules */}
+            <Link 
+              to="/highway-rules"
+              className="group relative bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur border border-green-500/30 rounded-3xl p-8 hover:border-green-400 transition-all duration-300 hover:transform hover:scale-105 hover:shadow-2xl hover:shadow-green-500/20"
+            >
+              <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg">
+                <span className="text-4xl">🛣️</span>
+              </div>
+              
+              <h3 className="text-2xl font-bold text-white mb-4">Highway Rules</h3>
+              
+              <p className="text-blue-200 mb-6 leading-relaxed">
+                Learn road signs and highway rules with interactive lessons. Essential knowledge for safe driving and DOT compliance.
+              </p>
+              
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center gap-3 text-white">
+                  <span className="text-green-400">✓</span> Road signs
+                </li>
+                <li className="flex items-center gap-3 text-white">
+                  <span className="text-green-400">✓</span> Interactive lessons
+                </li>
+                <li className="flex items-center gap-3 text-white">
+                  <span className="text-green-400">✓</span> DOT compliance
+                </li>
+              </ul>
+              
+              <div className="flex items-center text-green-400 font-semibold group-hover:text-green-300">
+                Learn Rules
+                <svg className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </div>
             </Link>
           </div>
         </div>
-        
-        {/* Floating elements */}
-        <div className="absolute top-20 left-10 w-20 h-20 bg-yellow-300/20 rounded-full animate-pulse-slow"></div>
-        <div className="absolute bottom-20 right-10 w-16 h-16 bg-blue-300/20 rounded-full animate-pulse-slow delay-1000"></div>
-        <div className="absolute top-1/2 right-20 w-12 h-12 bg-white/10 rounded-full animate-pulse-slow delay-2000"></div>
       </section>
 
-      {/* Features Grid */}
-      <section className="mb-16">
-        <h2 className="text-4xl font-bold text-center mb-12 text-gray-800">
-          Everything You Need to <span className="gradient-text">Succeed</span>
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          {/* DOT Practice Training */}
-          <FeatureAccess 
-            featureName="DOT Practice Training"
-            targetPath="/qa-training"
-            className="card-feature group cursor-pointer"
-          >
-            <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">🚔</div>
-            <h3 className="text-2xl font-bold mb-4 text-gray-800">DOT Practice Training</h3>
-            <p className="text-gray-600 mb-6 text-lg">
-              Master 200+ real DOT checkpoint scenarios with professional voice-over. 
-              Learn proper responses to officer questions and build confidence.
-            </p>
-            
-            <div className="grid grid-cols-1 gap-3 mb-6">
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <div className="text-blue-600 font-semibold text-sm">📚 200+ Questions</div>
-                <div className="text-xs text-gray-600">Real scenarios</div>
-              </div>
-              <div className="bg-green-50 p-3 rounded-lg">
-                <div className="text-green-600 font-semibold text-sm">🔊 Audio Training</div>
-                <div className="text-xs text-gray-600">Professional voice</div>
-              </div>
-            </div>
-            
-            {!user && (
-              <div className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 px-4 py-2 rounded-lg mb-4 text-sm font-semibold border border-green-200">
-                ✨ Sign up for FREE - Get 10 questions!
-              </div>
-            )}
-            <div className="flex items-center text-blue-600 font-semibold group-hover:text-blue-700">
-              {user ? 'Continue Training' : 'Get Free Access'}
-              <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </FeatureAccess>
+      {/* How It Works */}
+      <section className="py-24 px-4 bg-black/20">
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-16">
+            How It Works
+          </h2>
 
-          {/* Amazing Pronunciation Trainer */}
-          <Link 
-            to="/pronunciation-trainer"
-            className="card-feature group cursor-pointer"
-          >
-            <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">🎯</div>
-            <h3 className="text-2xl font-bold mb-4 text-gray-800">Pronunciation Trainer</h3>
-            <p className="text-gray-600 mb-6 text-lg">
-              Perfect your English pronunciation with our advanced trainer. Record yourself, 
-              compare with natives, and master 5 essential categories.
-            </p>
-            
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="bg-red-50 p-3 rounded-lg">
-                <div className="text-red-600 font-semibold text-sm">🎤 Voice Recording</div>
-                <div className="text-xs text-gray-600">Record & compare</div>
+          <div className="grid md:grid-cols-3 gap-12">
+            <div>
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl font-bold">
+                1
               </div>
-              <div className="bg-purple-50 p-3 rounded-lg">
-                <div className="text-purple-600 font-semibold text-sm">🚨 5 Categories</div>
-                <div className="text-xs text-gray-600">DOT, Emergency, etc.</div>
-              </div>
+              <h3 className="text-xl font-bold text-white mb-3">Choose a Scenario</h3>
+              <p className="text-blue-200">Pick what you want to practice - job interview, phone call, or casual conversation</p>
             </div>
             
-            <div className="flex items-center text-purple-600 font-semibold group-hover:text-purple-700">
-              Start Pronunciation Training
-              <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </Link>
-
-          {/* Amazing Speed Quiz */}
-          <Link 
-            to="/speed-quiz"
-            className="card-feature group cursor-pointer"
-          >
-            <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">⚡</div>
-            <h3 className="text-2xl font-bold mb-4 text-gray-800">Speed Quiz Challenge</h3>
-            <p className="text-gray-600 mb-6 text-lg">
-              Test your DOT knowledge under pressure! Quick-fire questions with time limits 
-              to build confidence and reaction speed.
-            </p>
-            
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="bg-yellow-50 p-3 rounded-lg">
-                <div className="text-yellow-600 font-semibold text-sm">⏱️ Timed Challenges</div>
-                <div className="text-xs text-gray-600">7-15 seconds each</div>
+            <div>
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl font-bold">
+                2
               </div>
-              <div className="bg-red-50 p-3 rounded-lg">
-                <div className="text-red-600 font-semibold text-sm">🔥 3 Difficulty Modes</div>
-                <div className="text-xs text-gray-600">Easy to DOT Pressure</div>
-              </div>
+              <h3 className="text-xl font-bold text-white mb-3">Speak Naturally</h3>
+              <p className="text-blue-200">Talk to the AI like a real person. It listens and responds in real-time</p>
             </div>
             
-            <div className="flex items-center text-yellow-600 font-semibold group-hover:text-yellow-700">
-              Start Speed Challenge
-              <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </Link>
-
-          {/* Interactive Highway Rules */}
-          <Link 
-            to="/highway-rules"
-            className="card-feature group cursor-pointer"
-          >
-            <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">🛣️</div>
-            <h3 className="text-2xl font-bold mb-4 text-gray-800">Highway Rules & Signs</h3>
-            <p className="text-gray-600 mb-6 text-lg">
-              Interactive learning for road signs and highway rules. Essential knowledge 
-              for DOT inspections and safe driving.
-            </p>
-            
-            <div className="grid grid-cols-1 gap-3 mb-6">
-              <div className="bg-green-50 p-3 rounded-lg">
-                <div className="text-green-600 font-semibold text-sm">🚧 Interactive Signs</div>
-                <div className="text-xs text-gray-600">Learn with real examples</div>
+            <div>
+              <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl font-bold">
+                3
               </div>
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <div className="text-blue-600 font-semibold text-sm">📋 Highway Rules</div>
-                <div className="text-xs text-gray-600">DOT compliance guide</div>
-              </div>
+              <h3 className="text-xl font-bold text-white mb-3">Get Better</h3>
+              <p className="text-blue-200">Practice anytime, anywhere. Your confidence will grow with every session</p>
             </div>
-            
-            <div className="flex items-center text-green-600 font-semibold group-hover:text-green-700">
-              Start Learning Rules
-              <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </Link>
-
-          {/* NEW: Conversation Practice with Avatar */}
-          <Link 
-            to="/conversation-practice"
-            className="card-feature group cursor-pointer relative overflow-hidden"
-          >
-            <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
-              🔥 NEW
-            </div>
-            <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">🎤</div>
-            <h3 className="text-2xl font-bold mb-4 text-gray-800">Conversation Practice</h3>
-            <p className="text-gray-600 mb-6 text-lg">
-              Practice real conversations with an AI avatar! Roleplay scenarios like 
-              weigh stations, dispatch calls, truck stops, and more.
-            </p>
-            
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="bg-orange-50 p-3 rounded-lg">
-                <div className="text-orange-600 font-semibold text-sm">🗣️ Voice Chat</div>
-                <div className="text-xs text-gray-600">Speak naturally</div>
-              </div>
-              <div className="bg-pink-50 p-3 rounded-lg">
-                <div className="text-pink-600 font-semibold text-sm">🎭 6 Scenarios</div>
-                <div className="text-xs text-gray-600">Real trucking situations</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center text-orange-600 font-semibold group-hover:text-orange-700">
-              Start Conversation
-              <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </Link>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-purple-700 text-white py-16 px-8 rounded-3xl text-center">
-        <h2 className="text-3xl font-bold mb-12">Trusted by Truck Drivers Worldwide</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="glass-effect rounded-2xl p-6">
-            <div className="text-4xl font-bold mb-2">20,000+</div>
-            <div className="text-blue-100">Active Users</div>
-          </div>
-          <div className="glass-effect rounded-2xl p-6">
-            <div className="text-4xl font-bold mb-2">200+</div>
-            <div className="text-blue-100">Practice Questions</div>
-          </div>
-          <div className="glass-effect rounded-2xl p-6">
-            <div className="text-4xl font-bold mb-2">Multiple</div>
-            <div className="text-blue-100">Languages</div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="text-center py-16">
-        <h2 className="text-4xl font-bold mb-6 text-gray-800">
-          Ready to Improve Your English?
-        </h2>
-        <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          Join thousands of truck drivers who have improved their communication skills 
-          and confidence on the road.
-        </p>
-        <FeatureAccess 
-          featureName="DOT Practice Training"
-          targetPath="/qa-training"
-          className="btn-primary text-lg px-10 py-4 inline-flex items-center cursor-pointer"
-        >
-          {user ? 'Continue Learning' : 'Start Free Account'}
-          <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
-        </FeatureAccess>
+      <section className="py-24 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            Ready to Speak Confidently?
+          </h2>
+          <p className="text-xl text-blue-200 mb-12">
+            Join thousands who improved their English with AI-powered practice
+          </p>
+          
+          <Link
+            to="/conversation-practice"
+            className="inline-flex items-center gap-3 px-12 py-6 bg-gradient-to-r from-orange-500 to-red-500 text-white text-2xl font-bold rounded-2xl shadow-2xl hover:shadow-orange-500/50 transform hover:scale-105 transition-all duration-300"
+          >
+            <span className="text-3xl">🎤</span>
+            Start Free Practice
+          </Link>
+          
+          <p className="text-blue-300 mt-6 text-sm">
+            No credit card required • Start in 30 seconds
+          </p>
+        </div>
       </section>
+
+      {/* Footer */}
+      <footer className="py-12 px-4 border-t border-white/10">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+              <span className="text-xl">🎯</span>
+            </div>
+            <span className="text-white font-bold text-lg">Checkpoint English</span>
+          </div>
+          
+          <div className="flex items-center gap-6 text-blue-200 text-sm">
+            <a href="#" className="hover:text-white transition-colors">Privacy</a>
+            <a href="#" className="hover:text-white transition-colors">Terms</a>
+            <a href="#" className="hover:text-white transition-colors">Support</a>
+          </div>
+          
+          <div className="text-blue-300 text-sm">
+            © 2026 Checkpoint English
+          </div>
+        </div>
+      </footer>
 
       {/* Install Prompt */}
       <InstallPrompt />
-      
-      {/* Payment Debugger (only shows on localhost or with ?debug=true) */}
-      <PaymentDebugger />
     </div>
   )
 }
