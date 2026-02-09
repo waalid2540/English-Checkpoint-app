@@ -9,6 +9,7 @@ import ttsRoutes from './routes/tts.js';
 import subscriptionRoutes from './routes/subscription.js';
 import stripeRoutes from './routes/stripe.js';
 import translateRoutes from './routes/translate.js';
+import conversationMemoryRoutes from './routes/conversation-memory.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,6 +56,9 @@ app.use('/api/stripe', stripeRoutes);
 
 // Translation routes
 app.use('/api/translate', translateRoutes);
+
+// Conversation memory routes
+app.use('/api/memory', conversationMemoryRoutes);
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {

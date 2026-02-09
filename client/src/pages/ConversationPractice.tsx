@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import TalkingAvatar from '../components/TalkingAvatar'
+import { useAuth } from '../contexts/AuthContext'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://english-checkpoint-backend.onrender.com'
 
@@ -40,6 +41,7 @@ const GREETINGS = [
 
 const ConversationPractice = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
   
   const [messages, setMessages] = useState<Message[]>([])
   const [isListening, setIsListening] = useState(false)
@@ -47,9 +49,46 @@ const ConversationPractice = () => {
   const [isThinking, setIsThinking] = useState(false)
   const [isStarted, setIsStarted] = useState(false)
   const [avatarMood, setAvatarMood] = useState<'neutral' | 'speaking' | 'listening' | 'thinking'>('neutral')
+  const [userContext, setUserContext] = useState<string>('')
+  const [userName, setUserName] = useState<string>('')
   
   const recognitionRef = useRef<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Load user's memory on mount
+  useEffect(() => {
+    if (user?.id) {
+      loadUserMemory()
+    }
+  }, [user])
+
+  const loadUserMemory = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/memory/context/${user?.id}`)
+      if (response.data.success && response.data.context) {
+        setUserContext(response.data.context)
+      }
+      if (response.data.profile?.name) {
+        setUserName(response.data.profile.name)
+      }
+    } catch (error) {
+      console.log('No previous memory found')
+    }
+  }
+
+  const saveConversation = async () => {
+    if (!user?.id || messages.length < 2) return
+    
+    try {
+      await axios.post(`${API_BASE_URL}/api/memory/save`, {
+        userId: user.id,
+        messages: messages.map(m => ({ sender: m.sender, text: m.text }))
+      })
+      console.log('Conversation saved!')
+    } catch (error) {
+      console.log('Could not save conversation')
+    }
+  }
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -60,8 +99,12 @@ const ConversationPractice = () => {
   const startConversation = async () => {
     setIsStarted(true)
     
-    // Random greeting
-    const greeting = GREETINGS[Math.floor(Math.random() * GREETINGS.length)]
+    // Personalized greeting if we know the user
+    let greeting = GREETINGS[Math.floor(Math.random() * GREETINGS.length)]
+    
+    if (userName) {
+      greeting = `Hey ${userName}! Great to see you again. How's your English practice going? What would you like to talk about today?`
+    }
     
     const starterMsg: Message = {
       id: '1',
@@ -214,9 +257,15 @@ const ConversationPractice = () => {
   // Get AI response
   const getAIResponse = async (userText: string): Promise<string> => {
     try {
+      // Add user context to system prompt if available
+      let personalizedPrompt = SYSTEM_PROMPT
+      if (userContext) {
+        personalizedPrompt += `\n\nIMPORTANT USER CONTEXT:\n${userContext}\n\nUse this context to personalize your responses and reference past conversations when relevant.`
+      }
+      
       const response = await axios.post(`${API_BASE_URL}/api/ai/chat`, {
         message: userText,
-        systemPrompt: SYSTEM_PROMPT,
+        systemPrompt: personalizedPrompt,
         conversationHistory: messages.slice(-10).map(m => ({
           role: m.sender === 'user' ? 'user' : 'assistant',
           content: m.text
@@ -232,9 +281,13 @@ const ConversationPractice = () => {
   }
 
   // End conversation
-  const endConversation = () => {
+  const endConversation = async () => {
     stopListening()
     speechSynthesis.cancel()
+    
+    // Save conversation before clearing
+    await saveConversation()
+    
     setIsStarted(false)
     setMessages([])
     setAvatarMood('neutral')
