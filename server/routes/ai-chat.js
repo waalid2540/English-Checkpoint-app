@@ -309,4 +309,43 @@ router.post('/translate', async (req, res) => {
   }
 });
 
+// OpenAI Text-to-Speech endpoint (High Quality!)
+router.post('/speak', async (req, res) => {
+  try {
+    const { text, voice = 'echo' } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ error: 'Text is required' });
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ error: 'OpenAI API key not configured' });
+    }
+
+    console.log(`🎤 Generating OpenAI TTS with voice "${voice}": "${text.substring(0, 50)}..."`);
+
+    const mp3Response = await openai.audio.speech.create({
+      model: "tts-1",
+      voice: voice, // alloy, echo, fable, onyx, nova, shimmer
+      input: text,
+      speed: 1.0
+    });
+
+    // Get audio buffer
+    const buffer = Buffer.from(await mp3Response.arrayBuffer());
+
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': buffer.length
+    });
+
+    res.send(buffer);
+    console.log(`✅ OpenAI TTS sent, size: ${buffer.length} bytes`);
+
+  } catch (error) {
+    console.error('❌ OpenAI TTS error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

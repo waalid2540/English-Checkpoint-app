@@ -214,41 +214,73 @@ const ConversationPractice = () => {
     }
   }
 
-  // Text-to-Speech
-  const speakText = (text: string): Promise<void> => {
-    return new Promise((resolve) => {
-      setIsSpeaking(true)
-      setAvatarMood('speaking')
+  // Text-to-Speech using OpenAI (high quality voices!)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  
+  const speakText = async (text: string): Promise<void> => {
+    setIsSpeaking(true)
+    setAvatarMood('speaking')
+    
+    try {
+      // Call OpenAI TTS API
+      const response = await axios.post(
+        `${API_BASE_URL}/api/ai/speak`,
+        { text, voice: 'echo' }, // echo = warm male voice
+        { responseType: 'blob' }
+      )
       
+      // Create audio URL and play
+      const audioBlob = new Blob([response.data], { type: 'audio/mpeg' })
+      const audioUrl = URL.createObjectURL(audioBlob)
+      
+      // Clean up previous audio
+      if (audioRef.current) {
+        audioRef.current.pause()
+        URL.revokeObjectURL(audioRef.current.src)
+      }
+      
+      // Play new audio
+      const audio = new Audio(audioUrl)
+      audioRef.current = audio
+      
+      await new Promise<void>((resolve) => {
+        audio.onended = () => {
+          setIsSpeaking(false)
+          setAvatarMood('neutral')
+          URL.revokeObjectURL(audioUrl)
+          resolve()
+        }
+        audio.onerror = () => {
+          setIsSpeaking(false)
+          setAvatarMood('neutral')
+          resolve()
+        }
+        audio.play().catch(() => {
+          // Fallback to browser TTS if autoplay blocked
+          fallbackSpeak(text).then(resolve)
+        })
+      })
+    } catch (error) {
+      console.log('OpenAI TTS failed, using fallback')
+      await fallbackSpeak(text)
+    }
+  }
+  
+  // Fallback to browser TTS
+  const fallbackSpeak = (text: string): Promise<void> => {
+    return new Promise((resolve) => {
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.rate = 0.9
-      utterance.pitch = 1
-      utterance.volume = 1
-      
-      // Get best voice
-      const voices = speechSynthesis.getVoices()
-      const preferredVoice = voices.find(voice => 
-        voice.lang === 'en-US' && (
-          voice.name.includes('Google') || 
-          voice.name.includes('Samantha') ||
-          voice.name.includes('Alex')
-        )
-      ) || voices.find(voice => voice.lang.startsWith('en'))
-      
-      if (preferredVoice) utterance.voice = preferredVoice
-      
       utterance.onend = () => {
         setIsSpeaking(false)
         setAvatarMood('neutral')
         resolve()
       }
-      
       utterance.onerror = () => {
         setIsSpeaking(false)
         setAvatarMood('neutral')
         resolve()
       }
-      
       speechSynthesis.cancel()
       speechSynthesis.speak(utterance)
     })
