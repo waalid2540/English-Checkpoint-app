@@ -6,162 +6,298 @@ interface TalkingAvatarProps {
 }
 
 const TalkingAvatar: React.FC<TalkingAvatarProps> = ({ mood, size = 'lg' }) => {
-  const [mouthOpen, setMouthOpen] = useState(false)
+  const [mouthFrame, setMouthFrame] = useState(0)
   const [blinkEyes, setBlinkEyes] = useState(false)
+  const [headTilt, setHeadTilt] = useState(0)
 
-  // Animate mouth when speaking
+  // Smooth mouth animation when speaking
   useEffect(() => {
     if (mood === 'speaking') {
       const interval = setInterval(() => {
-        setMouthOpen(prev => !prev)
-      }, 150)
+        setMouthFrame(Math.floor(Math.random() * 4))
+      }, 120)
       return () => clearInterval(interval)
     } else {
-      setMouthOpen(false)
+      setMouthFrame(0)
     }
   }, [mood])
 
-  // Blink eyes periodically
+  // Natural blinking
   useEffect(() => {
     const blinkInterval = setInterval(() => {
       setBlinkEyes(true)
-      setTimeout(() => setBlinkEyes(false), 150)
-    }, 3000 + Math.random() * 2000)
+      setTimeout(() => setBlinkEyes(false), 120)
+    }, 2500 + Math.random() * 2000)
     return () => clearInterval(blinkInterval)
   }, [])
 
-  const sizeClasses = {
-    sm: 'w-24 h-24',
-    md: 'w-40 h-40',
-    lg: 'w-56 h-56'
+  // Subtle head movement when listening
+  useEffect(() => {
+    if (mood === 'listening') {
+      const tiltInterval = setInterval(() => {
+        setHeadTilt(prev => (prev === 0 ? 3 : prev === 3 ? -3 : 0))
+      }, 800)
+      return () => clearInterval(tiltInterval)
+    } else {
+      setHeadTilt(0)
+    }
+  }, [mood])
+
+  const sizeMap = {
+    sm: { container: 'w-28 h-28', avatar: 120 },
+    md: { container: 'w-44 h-44', avatar: 180 },
+    lg: { container: 'w-60 h-60', avatar: 240 }
   }
 
-  const getMoodColor = () => {
-    switch (mood) {
-      case 'speaking': return 'from-green-400 to-emerald-500'
-      case 'listening': return 'from-red-400 to-rose-500'
-      case 'thinking': return 'from-yellow-400 to-amber-500'
-      default: return 'from-blue-400 to-indigo-500'
-    }
+  const moodColors = {
+    speaking: { primary: '#10B981', secondary: '#34D399', glow: 'rgba(16, 185, 129, 0.4)' },
+    listening: { primary: '#EF4444', secondary: '#F87171', glow: 'rgba(239, 68, 68, 0.4)' },
+    thinking: { primary: '#F59E0B', secondary: '#FBBF24', glow: 'rgba(245, 158, 11, 0.4)' },
+    neutral: { primary: '#6366F1', secondary: '#818CF8', glow: 'rgba(99, 102, 241, 0.3)' }
   }
 
-  const getMoodRing = () => {
-    switch (mood) {
-      case 'speaking': return 'ring-green-400 shadow-green-400/50'
-      case 'listening': return 'ring-red-400 shadow-red-400/50 animate-pulse'
-      case 'thinking': return 'ring-yellow-400 shadow-yellow-400/50'
-      default: return 'ring-blue-400 shadow-blue-400/50'
+  const colors = moodColors[mood]
+  const { container, avatar } = sizeMap[size]
+
+  // Mouth shapes for speech animation
+  const getMouthPath = () => {
+    if (mood === 'speaking') {
+      const mouths = [
+        'M 85 145 Q 100 152 115 145', // slightly open
+        'M 82 143 Q 100 160 118 143', // open
+        'M 80 145 Q 100 168 120 145', // wide open
+        'M 88 145 Q 100 150 112 145', // almost closed
+      ]
+      return mouths[mouthFrame]
     }
+    if (mood === 'listening') {
+      return 'M 90 147 Q 100 147 110 147' // small O shape
+    }
+    if (mood === 'thinking') {
+      return 'M 95 148 Q 108 145 112 148' // shifted smile
+    }
+    return 'M 85 145 Q 100 155 115 145' // friendly smile
   }
 
   return (
-    <div className="relative">
-      {/* Animated glow background */}
-      <div className={`absolute inset-0 ${sizeClasses[size]} rounded-full bg-gradient-to-br ${getMoodColor()} blur-xl opacity-50 animate-pulse`}></div>
-      
-      {/* Main avatar container */}
-      <div className={`relative ${sizeClasses[size]} rounded-full bg-gradient-to-br ${getMoodColor()} ring-4 ${getMoodRing()} shadow-2xl transition-all duration-300 overflow-hidden`}>
-        
-        {/* Face background */}
-        <div className="absolute inset-4 bg-gradient-to-br from-amber-100 to-amber-200 rounded-full shadow-inner">
+    <div className="flex flex-col items-center">
+      {/* Glow effect */}
+      <div 
+        className={`${container} relative`}
+        style={{
+          filter: `drop-shadow(0 0 20px ${colors.glow}) drop-shadow(0 0 40px ${colors.glow})`
+        }}
+      >
+        <svg 
+          viewBox="0 0 200 200" 
+          className="w-full h-full transition-transform duration-300"
+          style={{ transform: `rotate(${headTilt}deg)` }}
+        >
+          <defs>
+            {/* Gradients */}
+            <radialGradient id="faceGradient" cx="50%" cy="30%" r="70%">
+              <stop offset="0%" stopColor="#FDE68A" />
+              <stop offset="50%" stopColor="#FCD34D" />
+              <stop offset="100%" stopColor="#F59E0B" />
+            </radialGradient>
+            
+            <radialGradient id="cheekGradient" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#FECACA" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#FECACA" stopOpacity="0" />
+            </radialGradient>
+
+            <linearGradient id="hairGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#4B5563" />
+              <stop offset="100%" stopColor="#1F2937" />
+            </linearGradient>
+
+            <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={colors.primary} />
+              <stop offset="100%" stopColor={colors.secondary} />
+            </linearGradient>
+
+            {/* Glow filter */}
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+
+          {/* Animated ring */}
+          <circle 
+            cx="100" 
+            cy="100" 
+            r="95" 
+            fill="none" 
+            stroke="url(#ringGradient)" 
+            strokeWidth="4"
+            className={mood === 'listening' ? 'animate-pulse' : ''}
+          />
+          
+          {/* Sound waves when speaking */}
+          {mood === 'speaking' && (
+            <g className="animate-pulse">
+              <path d="M 170 85 Q 185 100 170 115" fill="none" stroke={colors.primary} strokeWidth="3" strokeLinecap="round" opacity="0.8" />
+              <path d="M 180 75 Q 200 100 180 125" fill="none" stroke={colors.primary} strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+            </g>
+          )}
+
+          {/* Head/Face base */}
+          <circle cx="100" cy="105" r="75" fill="url(#faceGradient)" />
           
           {/* Hair */}
-          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-3/4 h-1/3 bg-gradient-to-b from-gray-800 to-gray-700 rounded-t-full"></div>
+          <ellipse cx="100" cy="55" rx="55" ry="35" fill="url(#hairGradient)" />
+          <ellipse cx="60" cy="70" rx="20" ry="25" fill="url(#hairGradient)" />
+          <ellipse cx="140" cy="70" rx="20" ry="25" fill="url(#hairGradient)" />
+
+          {/* Ears */}
+          <ellipse cx="30" cy="105" rx="10" ry="15" fill="#FCD34D" />
+          <ellipse cx="170" cy="105" rx="10" ry="15" fill="#FCD34D" />
+
+          {/* Cheeks */}
+          <circle cx="60" cy="130" r="15" fill="url(#cheekGradient)" />
+          <circle cx="140" cy="130" r="15" fill="url(#cheekGradient)" />
+
+          {/* Eyes */}
+          <g>
+            {/* Left eye */}
+            <ellipse 
+              cx="70" 
+              cy="105" 
+              rx="15" 
+              ry={blinkEyes ? 2 : 18} 
+              fill="white"
+              className="transition-all duration-75"
+            />
+            {!blinkEyes && (
+              <>
+                <circle cx="72" cy="105" r="8" fill="#1F2937" />
+                <circle cx="74" cy="102" r="3" fill="white" />
+              </>
+            )}
+            
+            {/* Right eye */}
+            <ellipse 
+              cx="130" 
+              cy="105" 
+              rx="15" 
+              ry={blinkEyes ? 2 : 18} 
+              fill="white"
+              className="transition-all duration-75"
+            />
+            {!blinkEyes && (
+              <>
+                <circle cx="132" cy="105" r="8" fill="#1F2937" />
+                <circle cx="134" cy="102" r="3" fill="white" />
+              </>
+            )}
+          </g>
+
+          {/* Eyebrows */}
+          <path 
+            d={mood === 'thinking' ? 'M 55 82 Q 70 78 85 85' : 'M 55 85 Q 70 80 85 85'} 
+            fill="none" 
+            stroke="#4B5563" 
+            strokeWidth="4" 
+            strokeLinecap="round"
+            className="transition-all duration-200"
+          />
+          <path 
+            d={mood === 'thinking' ? 'M 145 85 Q 130 78 115 82' : 'M 145 85 Q 130 80 115 85'} 
+            fill="none" 
+            stroke="#4B5563" 
+            strokeWidth="4" 
+            strokeLinecap="round"
+            className="transition-all duration-200"
+          />
+
+          {/* Nose */}
+          <ellipse cx="100" cy="125" rx="5" ry="8" fill="#EAB308" opacity="0.6" />
+
+          {/* Mouth */}
+          <path 
+            d={getMouthPath()} 
+            fill={mood === 'speaking' ? '#7C2D12' : 'none'}
+            stroke="#92400E" 
+            strokeWidth="4" 
+            strokeLinecap="round"
+            className="transition-all duration-100"
+          />
           
-          {/* Face features container */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pt-4">
-            
-            {/* Eyes */}
-            <div className="flex space-x-6 mb-3">
-              {/* Left eye */}
-              <div className="relative">
-                <div className={`w-6 h-${blinkEyes ? '1' : '6'} bg-white rounded-full shadow-inner transition-all duration-100 flex items-center justify-center`}>
-                  {!blinkEyes && (
-                    <div className={`w-3 h-3 bg-gray-800 rounded-full ${mood === 'listening' ? 'animate-pulse' : ''}`}>
-                      <div className="w-1 h-1 bg-white rounded-full ml-0.5 mt-0.5"></div>
-                    </div>
-                  )}
-                </div>
-                {/* Eyebrow */}
-                <div className={`absolute -top-2 left-0 w-7 h-1.5 bg-gray-700 rounded-full transform ${mood === 'thinking' ? 'rotate-6' : mood === 'speaking' ? '-rotate-3' : ''} transition-transform`}></div>
-              </div>
-              
-              {/* Right eye */}
-              <div className="relative">
-                <div className={`w-6 h-${blinkEyes ? '1' : '6'} bg-white rounded-full shadow-inner transition-all duration-100 flex items-center justify-center`}>
-                  {!blinkEyes && (
-                    <div className={`w-3 h-3 bg-gray-800 rounded-full ${mood === 'listening' ? 'animate-pulse' : ''}`}>
-                      <div className="w-1 h-1 bg-white rounded-full ml-0.5 mt-0.5"></div>
-                    </div>
-                  )}
-                </div>
-                {/* Eyebrow */}
-                <div className={`absolute -top-2 left-0 w-7 h-1.5 bg-gray-700 rounded-full transform ${mood === 'thinking' ? '-rotate-6' : mood === 'speaking' ? 'rotate-3' : ''} transition-transform`}></div>
-              </div>
-            </div>
-            
-            {/* Nose */}
-            <div className="w-2 h-3 bg-amber-300 rounded-full mb-2"></div>
-            
-            {/* Mouth */}
-            <div className={`transition-all duration-100 ${
-              mood === 'speaking' 
-                ? mouthOpen 
-                  ? 'w-8 h-6 bg-gray-800 rounded-full' 
-                  : 'w-10 h-3 bg-gray-800 rounded-full'
-                : mood === 'listening'
-                  ? 'w-6 h-6 bg-gray-800 rounded-full border-2 border-gray-600'
-                  : mood === 'thinking'
-                    ? 'w-4 h-4 bg-gray-800 rounded-full ml-4'
-                    : 'w-12 h-2 bg-gray-700 rounded-full'
-            }`}>
-              {mood === 'speaking' && mouthOpen && (
-                <div className="w-full h-1/2 bg-pink-400 rounded-b-full mt-3"></div>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Sound waves for speaking */}
-        {mood === 'speaking' && (
-          <div className="absolute -right-4 top-1/2 transform -translate-y-1/2 flex flex-col space-y-1">
-            <div className="w-3 h-1 bg-green-400 rounded-full animate-pulse"></div>
-            <div className="w-5 h-1 bg-green-400 rounded-full animate-pulse delay-75"></div>
-            <div className="w-4 h-1 bg-green-400 rounded-full animate-pulse delay-150"></div>
-          </div>
-        )}
-        
-        {/* Microphone indicator for listening */}
-        {mood === 'listening' && (
-          <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-            <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center animate-pulse shadow-lg">
-              <span className="text-white text-sm">🎤</span>
-            </div>
-          </div>
-        )}
-        
-        {/* Thinking bubbles */}
-        {mood === 'thinking' && (
-          <div className="absolute -top-2 -right-2 flex flex-col space-y-1">
-            <div className="w-2 h-2 bg-yellow-400 rounded-full animate-bounce"></div>
-            <div className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce delay-100"></div>
-            <div className="w-4 h-4 bg-yellow-400 rounded-full animate-bounce delay-200"></div>
-          </div>
-        )}
+          {/* Tongue when speaking wide */}
+          {mood === 'speaking' && mouthFrame === 2 && (
+            <ellipse cx="100" cy="158" rx="8" ry="5" fill="#F87171" />
+          )}
+
+          {/* Thinking bubbles */}
+          {mood === 'thinking' && (
+            <g filter="url(#glow)">
+              <circle cx="165" cy="55" r="5" fill={colors.primary} className="animate-bounce" style={{ animationDelay: '0ms' }} />
+              <circle cx="175" cy="40" r="7" fill={colors.primary} className="animate-bounce" style={{ animationDelay: '150ms' }} />
+              <circle cx="188" cy="22" r="10" fill={colors.primary} className="animate-bounce" style={{ animationDelay: '300ms' }} />
+            </g>
+          )}
+
+          {/* Listening indicator */}
+          {mood === 'listening' && (
+            <g className="animate-pulse">
+              <circle cx="100" cy="185" r="12" fill={colors.primary} />
+              <rect x="97" y="175" width="6" height="12" rx="3" fill="white" />
+              <rect x="94" y="190" width="12" height="3" rx="1" fill="white" />
+            </g>
+          )}
+        </svg>
       </div>
-      
-      {/* Status text */}
-      <div className="mt-4 text-center">
-        <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${
-          mood === 'speaking' ? 'bg-green-500 text-white' :
-          mood === 'listening' ? 'bg-red-500 text-white animate-pulse' :
-          mood === 'thinking' ? 'bg-yellow-500 text-white' :
-          'bg-gray-600 text-white'
-        }`}>
-          {mood === 'speaking' && '🔊 Speaking...'}
-          {mood === 'listening' && '🎤 Listening...'}
-          {mood === 'thinking' && '💭 Thinking...'}
-          {mood === 'neutral' && '✅ Ready'}
+
+      {/* Status badge */}
+      <div className="mt-4">
+        <div 
+          className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white shadow-lg transition-all duration-300 ${
+            mood === 'listening' ? 'animate-pulse' : ''
+          }`}
+          style={{ 
+            background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+            boxShadow: `0 4px 20px ${colors.glow}`
+          }}
+        >
+          {mood === 'speaking' && (
+            <>
+              <span className="flex gap-0.5">
+                <span className="w-1 h-3 bg-white rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></span>
+                <span className="w-1 h-4 bg-white rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></span>
+                <span className="w-1 h-2 bg-white rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></span>
+              </span>
+              Speaking...
+            </>
+          )}
+          {mood === 'listening' && (
+            <>
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+              </span>
+              Listening...
+            </>
+          )}
+          {mood === 'thinking' && (
+            <>
+              <span className="flex gap-1">
+                <span className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                <span className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                <span className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+              </span>
+              Thinking...
+            </>
+          )}
+          {mood === 'neutral' && (
+            <>
+              <span className="text-base">✨</span>
+              Ready to help!
+            </>
+          )}
         </div>
       </div>
     </div>
